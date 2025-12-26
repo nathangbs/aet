@@ -614,15 +614,6 @@
 </style>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<script>
-  // === Supabase init ===
-  const supabase = window.supabase.createClient(
-    "https://nhvprvgxnlrfulztxcnk.supabase.co",
-    "sb_publishable_UgKnunwjhVS6lJ3UdECo9A_4goASXnb"
-  );
-</script>
-
 </head>
 
 <body>
@@ -1554,6 +1545,131 @@
   </div>
 </div>
 <!-- /AUTH MODAL -->
+
+
+<script>
+/* ===== Supabase wiring (added) ===== */
+const supabase = window.supabase.createClient("https://nhvprvgxnlrfulztxcnk.supabase.co", "sb_publishable_UgKnunwjhVS6lJ3UdECo9A_4goASXnb");
+
+function showAuthModal(show) {
+  const modal = document.getElementById("auth-modal");
+  if (!modal) return;
+  modal.classList.toggle("active", !!show);
+}
+
+function setAuthStatus(msg, isError) {
+  const el = document.getElementById("auth-status");
+  if (!el) return;
+  el.textContent = msg || "";
+  el.style.color = isError ? "#B91C1C" : "#374151";
+}
+
+async function refreshSessionAndGate() {
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) throw error;
+
+    const user = data?.session?.user ?? null;
+    if (!user) {
+      showAuthModal(true);
+      if (typeof setUserBadge === "function") setUserBadge(null);
+      if (typeof setAppEnabled === "function") setAppEnabled(false);
+      return;
+    }
+
+    showAuthModal(false);
+    if (typeof setUserBadge === "function") setUserBadge(user.email || null);
+    if (typeof setAppEnabled === "function") setAppEnabled(true);
+
+    // If your app has DB load/render functions, call them when available
+    if (typeof loadAllFromDb === "function") await loadAllFromDb();
+    if (typeof renderAll === "function") renderAll();
+  } catch (e) {
+    console.error(e);
+    setAuthStatus(e?.message || String(e), true);
+    showAuthModal(true);
+    if (typeof setAppEnabled === "function") setAppEnabled(false);
+  }
+}
+
+function setAuthLoading(isLoading) {
+  const btnLogin = document.getElementById("auth-login-btn");
+  const btnSignup = document.getElementById("auth-signup-btn");
+  const email = document.getElementById("auth-email");
+  const pass = document.getElementById("auth-password");
+  if (btnLogin) {
+    btnLogin.disabled = !!isLoading;
+    btnLogin.classList.toggle("btn-loading", true);
+    btnLogin.innerHTML = isLoading ? '<span class="spinner"></span>Entrando...' : 'Entrar';
+  }
+  if (btnSignup) {
+    btnSignup.disabled = !!isLoading;
+    btnSignup.textContent = isLoading ? "Aguarde..." : "Criar conta";
+  }
+  if (email) email.disabled = !!isLoading;
+  if (pass) pass.disabled = !!isLoading;
+}
+
+async function doLogin() {
+  try {
+    setAuthStatus("", false);
+    setAuthLoading(true);
+    const email = (document.getElementById("auth-email")?.value || "").trim();
+    const password = document.getElementById("auth-password")?.value || "";
+    if (!email || !password) {
+      setAuthStatus("Informe e-mail e senha.", true);
+      setAuthLoading(false);
+      return;
+    }
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    setAuthStatus("Login OK ✅", false);
+    setAuthLoading(false);
+    await refreshSessionAndGate();
+  } catch (e) {
+    console.error(e);
+    setAuthStatus(e?.message || String(e), true);
+    setAuthLoading(false);
+  }
+}
+
+async function doSignup() {
+  try {
+    setAuthStatus("", false);
+    setAuthLoading(true);
+    const email = (document.getElementById("auth-email")?.value || "").trim();
+    const password = document.getElementById("auth-password")?.value || "";
+    if (!email || !password) {
+      setAuthStatus("Informe e-mail e senha.", true);
+      setAuthLoading(false);
+      return;
+    }
+    const { error } = await supabase.auth.signUp({ email, password });
+    if (error) throw error;
+    setAuthStatus("Conta criada. Se exigir confirmação de e-mail, verifique sua caixa de entrada.", false);
+    setAuthLoading(false);
+  } catch (e) {
+    console.error(e);
+    setAuthStatus(e?.message || String(e), true);
+    setAuthLoading(false);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const btnLogin = document.getElementById("auth-login-btn");
+  const btnSignup = document.getElementById("auth-signup-btn");
+  if (btnLogin) btnLogin.addEventListener("click", (ev) => { ev.preventDefault(); doLogin(); });
+  if (btnSignup) btnSignup.addEventListener("click", (ev) => { ev.preventDefault(); doSignup(); });
+
+  // enter key submits login
+  const pass = document.getElementById("auth-password");
+  if (pass) pass.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") doLogin();
+  });
+
+  refreshSessionAndGate();
+});
+</script>
 
 </body>
 </html>
