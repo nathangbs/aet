@@ -11,8 +11,11 @@
 
   <style>
     :root{
-      --brand: #2561C1;      /* azul do anexo */
-      --brand-dark: #1E4F9E; /* hover / tom escuro */
+      --brand: #2561C1;
+      --brand-dark: #1E4F9E;
+      --brand-blue:#1D4ED8;
+      --brand-blue-dark:#1E40AF;
+      --brand-green:#10B981;
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -29,9 +32,9 @@
       border-radius: 20px;
       box-shadow: 0 20px 60px rgba(0,0,0,0.1);
       overflow: hidden;
+      transition: filter 0.3s ease, opacity 0.3s ease;
     }
 
-    /* ===== HEADER com LOGO ===== */
     .header {
       background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
       color: white;
@@ -43,9 +46,9 @@
       gap:18px;
     }
     .header-logo{
-      width: 150px;        /* maior */
+      width: 150px;
       height: auto;
-      background: none;   /* sem fundo */
+      background: none;
       padding: 0;
       border-radius: 0;
       object-fit: contain;
@@ -86,7 +89,6 @@
       gap: 20px;
     }
 
-    /* Sidebar (conteúdo rolável + rodapé fixo) */
     .sidebar {
       background: linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%);
       border-radius: 15px;
@@ -149,7 +151,6 @@
       margin-top: 4px;
     }
 
-    /* Lista de placas (altura ~5 botões) */
     .plate-list {
       max-height: 320px;
       overflow-y: auto;
@@ -188,7 +189,6 @@
     .legend-item-name { font-weight: 900; color: #1F2937; margin-bottom: 5px; }
     .legend-item-info { font-size: 14px; color: #6B7280; font-weight: 700; }
 
-    /* Lista de trechos (igual placas: rolagem própria) */
     .route-list-scroll {
       max-height: 260px;
       overflow-y: auto;
@@ -199,7 +199,6 @@
     .route-list-scroll::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 12px; }
     .route-list-scroll::-webkit-scrollbar-track { background: transparent; }
 
-    /* Rodapé fixo do sidebar */
     .sidebar-footer {
       border-top: 2px solid #E5E7EB;
       padding-top: 14px;
@@ -209,7 +208,6 @@
       bottom: 0;
     }
 
-    /* Map wrapper + badge (direita) */
     .map-wrap {
       position: relative;
       width: 100%;
@@ -276,19 +274,31 @@
       cursor: pointer;
       transition: all 0.3s;
     }
-    .btn-primary { background: var(--brand); color: white; }
+    .btn-primary { 
+      background: var(--brand-blue); 
+      color: white;
+      border: 1px solid rgba(0,0,0,0.06);
+      box-shadow: 0 10px 24px rgba(29,78,216,0.20);
+    }
     .btn-primary:hover {
-      background: var(--brand-dark);
+      background: var(--brand-blue-dark);
       transform: translateY(-2px);
       box-shadow: 0 4px 15px rgba(37, 97, 193, 0.30);
     }
+    .btn-primary:disabled{
+      opacity: .75;
+      cursor: not-allowed;
+    }
     .btn-danger { background: #EF4444; color: white; }
     .btn-danger:hover { background: #DC2626; }
-
     .btn-warn { background: #F59E0B; color: #fff; }
     .btn-warn:hover { background: #D97706; }
     .btn-gray { background: #6B7280; color: #fff; }
     .btn-gray:hover { background: #4B5563; }
+    .btn-gray:disabled{
+      opacity: .75;
+      cursor: not-allowed;
+    }
     .btn-dark { background: #111827; color: #fff; }
     .btn-dark:hover { background: #0B1220; }
 
@@ -380,11 +390,12 @@
     }
     .mini-status strong { color: #111827; }
 
-    /* ===== MODAIS ===== */
     .modal-backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(17, 24, 39, 0.55);
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
       display: none;
       align-items: center;
       justify-content: center;
@@ -414,7 +425,6 @@
     }
     .modal-body { padding: 14px 18px 18px 18px; }
 
-    /* OSRM modal map */
     #osrm-modal-map {
       width: 100%;
       height: 520px;
@@ -427,7 +437,6 @@
       margin-top: 12px;
     }
 
-    /* Popup simples (duplicidade de placa) */
     .popup {
       width: min(520px, 96vw);
       background: white;
@@ -449,203 +458,100 @@
       background: #F9FAFB;
       border-top: 1px solid #E5E7EB;
     }
-  
-.container {
-  transition: filter 0.3s ease, opacity 0.3s ease;
-}
 
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-}
+    #auth-modal .modal{
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 24px 70px rgba(0,0,0,0.28);
+    }
 
-.modal-backdrop:not(.active) {
-  display: none;
-}
+    #auth-modal .auth-header{
+      padding: 10px 20px 10px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+      border-bottom: 1px solid #E5E7EB;
+    }
 
+    #auth-modal .auth-logo{
+      width: 140px;
+      max-width: 100%;
+      height: auto;
+      object-fit: contain;
+      filter: drop-shadow(0 6px 18px rgba(0,0,0,0.18));
+      margin-top: 0;
+      margin-bottom: 2px;
+    }
 
-/* ===== Auth modal (professional) ===== */
-#auth-modal .modal{
-  border-radius: 18px;
-  overflow: hidden;
-  box-shadow: 0 24px 70px rgba(0,0,0,0.28);
-}
+    #auth-modal .auth-title{
+      font-size: 18px;
+      font-weight: 950;
+      color: #0F172A;
+      letter-spacing: -0.2px;
+      margin-top: 0;
+    }
 
-#auth-modal .auth-header{
-  padding: 18px 20px 16px 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-  border-bottom: 1px solid #E5E7EB;
-}
+    #auth-modal .auth-subtitle{
+      font-size: 12px;
+      font-weight: 900;
+      color: #64748B;
+      text-align: center;
+      line-height: 1.35;
+      margin-top: -4px;
+    }
 
-#auth-modal .auth-logo{
-  width: 150px;
-  height: auto;
-  object-fit: contain;
-  filter: drop-shadow(0 6px 18px rgba(0,0,0,0.18));
-}
+    #auth-modal .modal-body{
+      padding-top: 16px;
+    }
 
-#auth-modal .auth-title{
-  font-size: 18px;
-  font-weight: 950;
-  color: #0F172A;
-  letter-spacing: -0.2px;
-}
+    #auth-modal input{
+      border-radius: 12px;
+    }
 
-#auth-modal .auth-subtitle{
-  font-size: 12px;
-  font-weight: 900;
-  color: #64748B;
-  text-align: center;
-  line-height: 1.35;
-  margin-top: -4px;
-}
+    #auth-modal .modal-actions button{
+      border-radius: 12px;
+    }
 
-#auth-modal .modal-body{
-  padding-top: 16px;
-}
+    #auth-modal .mini-status{
+      border-radius: 12px;
+    }
 
-#auth-modal input{
-  border-radius: 12px;
-}
+    .spinner{
+      width: 16px;
+      height: 16px;
+      border-radius: 999px;
+      border: 2px solid rgba(255,255,255,0.55);
+      border-top-color: rgba(255,255,255,0.95);
+      display: inline-block;
+      animation: spin 0.85s linear infinite;
+      vertical-align: -3px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-#auth-modal .modal-actions button{
-  border-radius: 12px;
-}
-
-#auth-modal .mini-status{
-  border-radius: 12px;
-}
-
-
-/* ===== Login logo (official) ===== */
-#auth-modal .auth-logo{
-  width: 140px;
-  max-width: 100%;
-  height: auto;
-  margin-bottom: 4px;
-}
-
-
-/* ===== Brand palette + UI polish ===== */
-:root{
-  --brand-blue:#1D4ED8;   /* azul da marca (aprox.) */
-  --brand-blue-dark:#1E40AF;
-  --brand-green:#10B981;  /* verde da marca (aprox.) */
-}
-
-.btn.btn-primary{
-  background: var(--brand-blue) !important;
-  border: 1px solid rgba(0,0,0,0.06) !important;
-  box-shadow: 0 10px 24px rgba(29,78,216,0.20);
-}
-.btn.btn-primary:hover{
-  background: var(--brand-blue-dark) !important;
-}
-.btn.btn-primary:disabled{
-  opacity: .75;
-  cursor: not-allowed;
-}
-
-.btn.btn-gray:disabled{
-  opacity: .75;
-  cursor: not-allowed;
-}
-
-/* ===== Auth header spacing (compact) ===== */
-#auth-modal .auth-header{
-  padding: 16px 20px 14px 20px !important;
-  gap: 6px !important;
-}
-#auth-modal .auth-title{ margin-top: 2px !important; }
-#auth-modal .auth-subtitle{ margin-top: -2px !important; }
-
-/* ===== Spinner (login) ===== */
-.spinner{
-  width: 16px;
-  height: 16px;
-  border-radius: 999px;
-  border: 2px solid rgba(255,255,255,0.55);
-  border-top-color: rgba(255,255,255,0.95);
-  display: inline-block;
-  animation: spin 0.85s linear infinite;
-  vertical-align: -3px;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.btn-loading{
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-}
-
-
-/* ===== Ajuste fino DEFINITIVO: espaçamento do login ===== */
-#auth-modal .auth-header{
-  padding-top: 10px !important;
-  padding-bottom: 10px !important;
-  gap: 4px !important;
-}
-
-#auth-modal .auth-logo{
-  margin-top: 0 !important;
-  margin-bottom: 2px !important;
-}
-
-#auth-modal .auth-title{
-  margin-top: 0 !important;
-}
-
-#auth-modal .auth-subtitle{
-  margin-top: -4px !important;
-}
-
-
-/* ===== Microsoft Login Button ===== */
-.btn-ms{
-  background:#ffffff;
-  color:#1F2937;
-  border:1px solid #D1D5DB;
-  font-weight:800;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:10px;
-}
-.btn-ms:hover{
-  background:#F9FAFB;
-}
-.ms-icon{
-  display:flex;
-  align-items:center;
-}
-
-</style>
+    .btn-loading{
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+  </style>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<script>
-  // === Supabase init ===
-  window.supabaseClient = window.supabase.createClient("https://nhvprvgxnlrfulztxcnk.supabase.co", "sb_publishable_UgKnunwjhVS6lJ3UdECo9A_4goASXnb");
-</script>
-
+  <script>
+    // === Supabase init ===
+    window.supabaseClient = window.supabase.createClient(
+      "https://nhvprvgxnlrfulztxcnk.supabase.co", 
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5odnBydmd4bmxyZnVsenR4Y25rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3NjU0MjQsImV4cCI6MjA4MjM0MTQyNH0.al3zG6OkC5uLe4MLEZeTErmSty-N3yG9rKVDC7FIVWU"
+    );
+  </script>
 </head>
 
 <body>
   <div class="container">
     <div class="header">
-      <!-- ✅ LOGO + TÍTULO -->
       <div class="header-top">
         <img class="header-logo"
           src="https://cdn-sites-assets.mziq.com/wp-content/uploads/sites/1475/2025/05/AnyConv.com__Camada_11-1.webp"
@@ -653,8 +559,13 @@
         <div>
           <h1>Gerenciamento de Autorização Especial de Trânsito</h1>
           <p>Controle trechos autorizados por veículo</p>
-        <div style="margin-top:14px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">  <span style="background:rgba(255,255,255,0.18); padding:8px 12px; border-radius:999px; font-weight:900;">    👤 <span id="user-badge">Deslogado</span>  </span>  <button id="btn-logout" class="btn btn-dark" style="display:none;">Sair</button></div>
-</div>
+          <div style="margin-top:14px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <span style="background:rgba(255,255,255,0.18); padding:8px 12px; border-radius:999px; font-weight:900;">
+              👤 <span id="user-badge">Deslogado</span>
+            </span>
+            <button id="btn-logout" class="btn btn-dark" style="display:none;">Sair</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -665,7 +576,6 @@
     </div>
 
     <div class="content">
-      <!-- MAPA E FILTROS -->
       <div id="tab-map" class="tab-content active">
         <div class="map-section">
           <div class="sidebar">
@@ -675,7 +585,6 @@
                 <span class="count-pill">Placas: <span id="plates-count">0</span></span>
               </h2>
 
-              <!-- Filtro por empresa -->
               <div style="margin-bottom: 12px;">
                 <select id="company-filter" style="width:100%;" onchange="onCompanyFilterChange()">
                   <option value="ALL">Todas as Empresas</option>
@@ -684,18 +593,15 @@
                 </select>
               </div>
 
-              <!-- Busca rápida -->
               <div style="margin-bottom: 10px;">
                 <input id="plate-search" type="text" placeholder="Buscar placa..." oninput="renderFilters()" style="width:100%;">
               </div>
 
-              <!-- Botão "Todos" fora da lista rolável -->
               <button id="btn-all-routes" class="filter-btn" onclick="selectTruckFilter(null)">
                 Todos os Trechos
                 <span class="filter-sub" id="all-routes-sub">Sem filtro de placa</span>
               </button>
 
-              <!-- Lista rolável (plates) -->
               <div id="filter-buttons" class="plate-list"></div>
 
               <div class="legend">
@@ -725,12 +631,10 @@
         </div>
       </div>
 
-      <!-- PLACAS -->
       <div id="tab-trucks" class="tab-content">
         <div class="section-box">
           <h2 style="margin-bottom: 20px;">Gerenciar Placas</h2>
 
-          <!-- Cadastro com Empresa + Placa -->
           <div class="input-group" style="grid-template-columns: 220px 1fr auto;">
             <select id="new-truck-company">
               <option value="POTENCIAL">POTENCIAL</option>
@@ -742,19 +646,17 @@
           </div>
 
           <div class="mini-status" style="margin-top:-6px; margin-bottom: 16px;">
-            <strong>Regra:</strong> não é permitido  a <strong>mesma placa</strong> duas vezes.
+            <strong>Regra:</strong> não é permitido cadastrar a <strong>mesma placa</strong> duas vezes.
           </div>
 
           <div id="truck-list"></div>
         </div>
       </div>
 
-      <!-- TRECHOS -->
       <div id="tab-routes" class="tab-content">
         <div class="section-box">
           <h2 style="margin-bottom: 20px;">Novo Trecho</h2>
 
-          <!-- REMOVIDOS: Enquadrar e Cancelar seleção -->
           <div style="display:flex; gap:10px; margin-bottom: 15px;">
             <button class="btn btn-dark" style="flex:1;" onclick="openOsrmModal()">🎯 Selecionar no mapa</button>
           </div>
@@ -779,7 +681,6 @@
 
         <div style="margin-top: 30px;" id="route-list"></div>
 
-        <!-- MODAL DO MAPA (SELEÇÃO OSRM) -->
         <div id="osrm-modal" class="modal-backdrop" onclick="closeOsrmModalOnBackdrop(event)">
           <div class="modal" onclick="event.stopPropagation()">
             <div class="modal-header">
@@ -788,41 +689,24 @@
             </div>
 
             <div class="modal-body">
-      <div class="info-box">
-        Use sua conta corporativa Microsoft para acessar.
-      </div>
+              <div id="osrm-modal-map"></div>
 
-      
-<button id="auth-ms-btn" class="btn btn-ms" style="width:100%; margin-top:14px;">
-  <span class="ms-icon">
-    <svg width="20" height="20" viewBox="0 0 23 23" xmlns="http://www.w3.org/2000/svg">
-      <rect x="1" y="1" width="10" height="10" fill="#F25022"/>
-      <rect x="12" y="1" width="10" height="10" fill="#7FBA00"/>
-      <rect x="1" y="12" width="10" height="10" fill="#00A4EF"/>
-      <rect x="12" y="12" width="10" height="10" fill="#FFB900"/>
-    </svg>
-  </span>
-  <span>Entrar com Microsoft</span>
-</button>
+              <div id="osrm-status" class="mini-status">
+                Clique em <strong>Iniciar seleção</strong> para marcar Início e Fim do trecho.
+              </div>
 
-
-      <div class="hint" style="margin-top:12px; color:#64748B; font-weight:700; font-size:12px; text-align:center;">
-        Acesso restrito a contas @grpotencial.com.br
-      </div>
-
-      <div id="auth-status" class="mini-status" style="margin-top:12px; display:none;"></div>
-    <div class="modal-actions">
-      <!-- actions removed: Microsoft-only login -->
-    </div>
-  </div>
-</div>
-</div>
-        <!-- /MODAL -->
+              <div class="modal-actions">
+                <button class="btn btn-primary" onclick="startOsrmSelection()" style="flex:1;">▶️ Iniciar seleção</button>
+                <button class="btn btn-warn" onclick="cancelOsrmSelection()" style="flex:1;">🚫 Cancelar seleção</button>
+                <button class="btn btn-dark" onclick="fitTempOrLastRoute()" style="flex:1;">🔍 Enquadrar</button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- POPUP: PLACA DUPLICADA -->
   <div id="dup-plate-modal" class="modal-backdrop" onclick="closeDupPlateOnBackdrop(event)">
     <div class="popup" onclick="event.stopPropagation()">
       <div class="modal-header">
@@ -838,817 +722,26 @@
     </div>
   </div>
 
-  <script>
-    var states = {
-      'AC': [-9.0238, -70.812], 'AL': [-9.5713, -36.782], 'AM': [-3.4168, -65.856], 'AP': [0.9020, -52.003],
-      'BA': [-12.5797, -41.700], 'CE': [-5.4984, -39.320], 'DF': [-15.7939, -47.882], 'ES': [-19.1834, -40.308],
-      'GO': [-15.8270, -49.837], 'MA': [-4.9609, -45.274], 'MG': [-18.5122, -44.555], 'MS': [-20.7722, -54.785],
-      'MT': [-12.6819, -56.921], 'PA': [-1.9981, -54.930], 'PB': [-7.2399, -36.782], 'PE': [-8.8137, -36.954],
-      'PI': [-7.7183, -42.728], 'PR': [-24.8994, -51.430], 'RJ': [-22.2543, -42.652], 'RN': [-5.4026, -36.954],
-      'RO': [-10.8312, -63.341], 'RR': [2.7376, -62.073], 'RS': [-30.0346, -51.217], 'SC': [-27.2423, -50.218],
-      'SE': [-10.5741, -37.386], 'SP': [-22.1987, -48.638], 'TO': [-10.1753, -48.291]
-    };
-
-    // trucks: {id, plate, company}
-    var trucks = [];
-    var routes = [];
-    var selectedTruck = null;
-    var selectedCompany = "ALL";
-
-    // Map
-    var map = null;
-    var layers = [];
-
-    // routeId -> { line, markers: [m1,m2], base:{weight,opacity} }
-    var mapRouteLayers = {};
-
-    // Editing
-    var editingRouteId = null;
-
-    // OSRM / Modal
-    var osrmModalMap = null;
-    var osrmModalReady = false;
-
-    var osrmSelecting = false;
-    var osrmStage = 0;
-    var osrmStart = null;
-    var osrmEnd = null;
-
-    var osrmStartMarker = null;
-    var osrmEndMarker = null;
-    var osrmTempRouteLayer = null;
-
-    var pendingGeometry = null;
-    var pendingDistanceKm = null;
-
-    var OSRM_BASE = "https://router.project-osrm.org";
-
-    window.onload = function() {
-      map = L.map('map').setView([-14.2350, -51.9253], 4);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap'
-      }).addTo(map);
-
-      // States dropdown
-      var sel = document.getElementById('route-state');
-      var stateKeys = Object.keys(states).sort();
-      for (var i = 0; i < stateKeys.length; i++) {
-        var opt = document.createElement('option');
-        opt.value = stateKeys[i];
-        opt.textContent = stateKeys[i];
-        sel.appendChild(opt);
-      }
-
-      renderAll();
-    };
-
-    function showTab(ev, name) {
-      var tabs = document.querySelectorAll('.tab');
-      var contents = document.querySelectorAll('.tab-content');
-      for (var i = 0; i < tabs.length; i++) tabs[i].classList.remove('active');
-      for (var i = 0; i < contents.length; i++) contents[i].classList.remove('active');
-
-      ev.currentTarget.classList.add('active');
-      document.getElementById('tab-' + name).classList.add('active');
-
-      if (name === 'map' && map) setTimeout(function(){ map.invalidateSize(); }, 150);
-    }
-
-    function resetMapView() {
-      map.setView([-14.2350, -51.9253], 4);
-    }
-
-    function fitToFilteredRoutes() {
-      var filtered = getFilteredRoutes();
-      var pts = [];
-      for (var i = 0; i < filtered.length; i++) {
-        if (filtered[i].geometry && filtered[i].geometry.length >= 2) pts = pts.concat(filtered[i].geometry);
-      }
-      if (pts.length >= 2) map.fitBounds(L.latLngBounds(pts), { padding: [50, 50] });
-      else resetMapView();
-    }
-
-    function onCompanyFilterChange() {
-      selectedCompany = document.getElementById('company-filter').value || "ALL";
-      if (selectedTruck && selectedCompany !== "ALL" && selectedTruck.company !== selectedCompany) {
-        selectedTruck = null;
-      }
-      renderAll();
-    }
-
-    // ===== Popup duplicidade =====
-    function openDupPlateModal(plate) {
-      document.getElementById('dup-plate-text').innerHTML =
-        'A placa <strong>' + plate + '</strong> já está cadastrada.<br><br>Clique em <strong>OK</strong> para voltar.';
-      document.getElementById('dup-plate-modal').classList.add('active');
-    }
-    function closeDupPlateModal() {
-      document.getElementById('dup-plate-modal').classList.remove('active');
-    }
-    function closeDupPlateOnBackdrop(ev) {
-      if (ev.target && ev.target.id === 'dup-plate-modal') closeDupPlateModal();
-    }
-
-    // ===== Trucks (empresa + sem duplicar placa) =====
-    function addTruck() {
-      var input = document.getElementById('new-truck');
-      var plate = input.value.trim().toUpperCase();
-      var company = (document.getElementById('new-truck-company').value || "POTENCIAL").toUpperCase();
-      if (!plate) return;
-
-      for (var i = 0; i < trucks.length; i++) {
-        if (trucks[i].plate === plate) {
-          openDupPlateModal(plate);
-          return;
-        }
-      }
-
-      trucks.push({ id: Date.now(), plate: plate, company: company });
-      input.value = '';
-      renderAll();
-    }
-
-    function removeTruck(id) {
-      var newTrucks = [];
-      for (var i = 0; i < trucks.length; i++) if (trucks[i].id !== id) newTrucks.push(trucks[i]);
-      trucks = newTrucks;
-
-      if (selectedTruck && selectedTruck.id === id) selectedTruck = null;
-
-      // remove permissões
-      for (var r = 0; r < routes.length; r++) {
-        var a = routes[r].allowedTrucks;
-        var na = [];
-        for (var j = 0; j < a.length; j++) if (a[j] !== id) na.push(a[j]);
-        routes[r].allowedTrucks = na;
-      }
-
-      renderAll();
-    }
-
-    // ===== Routes (add/edit) =====
-    function saveRoute() {
-      var name = document.getElementById('route-name').value.trim();
-      var state = document.getElementById('route-state').value;
-      var highway = document.getElementById('route-highway').value.trim();
-      var color = document.getElementById('route-color').value;
-      var startTxt = document.getElementById('route-start').value.trim();
-      var endTxt = document.getElementById('route-end').value.trim();
-      if (!name || !state || !highway) return;
-
-      if (editingRouteId) {
-        for (var i = 0; i < routes.length; i++) {
-          if (routes[i].id === editingRouteId) {
-            routes[i].name = name;
-            routes[i].state = state;
-            routes[i].highway = highway;
-            routes[i].color = color;
-            routes[i].start = startTxt;
-            routes[i].end = endTxt;
-
-            if (pendingGeometry && pendingGeometry.length >= 2) {
-              routes[i].geometry = pendingGeometry.slice();
-              routes[i].distanceKm = pendingDistanceKm;
-            }
-            break;
-          }
-        }
-      } else {
-        routes.push({
-          id: Date.now(),
-          name: name,
-          state: state,
-          highway: highway,
-          color: color,
-          start: startTxt,
-          end: endTxt,
-          allowedTrucks: [],
-          geometry: (pendingGeometry && pendingGeometry.length >= 2) ? pendingGeometry.slice() : null,
-          distanceKm: pendingDistanceKm
-        });
-      }
-
-      pendingGeometry = null;
-      pendingDistanceKm = null;
-      clearOsrmTemp();
-      clearRouteForm();
-      editingRouteId = null;
-      renderAll();
-    }
-
-    function editRoute(id) {
-      for (var i = 0; i < routes.length; i++) {
-        if (routes[i].id === id) {
-          var r = routes[i];
-          editingRouteId = id;
-
-          document.getElementById('route-name').value = r.name;
-          document.getElementById('route-state').value = r.state;
-          document.getElementById('route-highway').value = r.highway;
-          document.getElementById('route-color').value = r.color;
-          document.getElementById('route-start').value = r.start || '';
-          document.getElementById('route-end').value = r.end || '';
-
-          document.getElementById('btn-save-route').textContent = '💾 Salvar Alterações';
-          document.getElementById('btn-cancel-edit').style.display = 'block';
-
-          pendingGeometry = null;
-          pendingDistanceKm = null;
-          clearOsrmTemp();
-
-          renderAll();
-          break;
-        }
-      }
-    }
-
-    function cancelEdit() {
-      editingRouteId = null;
-      clearRouteForm();
-      pendingGeometry = null;
-      pendingDistanceKm = null;
-      clearOsrmTemp();
-      renderAll();
-    }
-
-    function deleteRoute(id) {
-      var newRoutes = [];
-      for (var i = 0; i < routes.length; i++) if (routes[i].id !== id) newRoutes.push(routes[i]);
-      routes = newRoutes;
-
-      if (editingRouteId === id) cancelEdit();
-      renderAll();
-    }
-
-    function clearRouteForm() {
-      document.getElementById('route-name').value = '';
-      document.getElementById('route-state').value = '';
-      document.getElementById('route-highway').value = '';
-      document.getElementById('route-start').value = '';
-      document.getElementById('route-end').value = '';
-
-      document.getElementById('btn-save-route').textContent = '➕ Adicionar Trecho';
-      document.getElementById('btn-cancel-edit').style.display = 'none';
-    }
-
-    // ===== Permissions =====
-    function toggleTruck(routeId, truckId) {
-      for (var i = 0; i < routes.length; i++) {
-        if (routes[i].id === routeId) {
-          var allowed = routes[i].allowedTrucks;
-          var idx = -1;
-          for (var j = 0; j < allowed.length; j++) if (allowed[j] === truckId) { idx = j; break; }
-          if (idx >= 0) allowed.splice(idx, 1);
-          else allowed.push(truckId);
-          break;
-        }
-      }
-      renderAll();
-    }
-
-    // ===== Filters =====
-    function selectTruckFilter(id) {
-      selectedTruck = null;
-      if (id !== null) {
-        for (var i = 0; i < trucks.length; i++) if (trucks[i].id === id) { selectedTruck = trucks[i]; break; }
-      }
-      renderAll();
-    }
-
-    function getTrucksByCompany(company) {
-      if (company === "ALL") return trucks.slice();
-      var arr = [];
-      for (var i = 0; i < trucks.length; i++) if (trucks[i].company === company) arr.push(trucks[i]);
-      return arr;
-    }
-
-    function getFilteredRoutes() {
-      if (selectedTruck) {
-        var filtered = [];
-        for (var i = 0; i < routes.length; i++) {
-          var allowed = routes[i].allowedTrucks;
-          for (var j = 0; j < allowed.length; j++) if (allowed[j] === selectedTruck.id) { filtered.push(routes[i]); break; }
-        }
-        return filtered;
-      }
-
-      if (selectedCompany !== "ALL") {
-        var trucksOfCompany = getTrucksByCompany(selectedCompany);
-        var setIds = {};
-        for (var t = 0; t < trucksOfCompany.length; t++) setIds[trucksOfCompany[t].id] = true;
-
-        var filtered2 = [];
-        for (var r = 0; r < routes.length; r++) {
-          var allowed2 = routes[r].allowedTrucks;
-          var ok = false;
-          for (var a = 0; a < allowed2.length; a++) if (setIds[allowed2[a]]) { ok = true; break; }
-          if (ok) filtered2.push(routes[r]);
-        }
-        return filtered2;
-      }
-
-      return routes;
-    }
-
-    function updateMapBadge() {
-      var badge = document.getElementById('map-filter-badge');
-
-      if (selectedTruck) {
-        badge.innerHTML = "Filtro: " + selectedTruck.plate + "<small>Empresa: " + selectedTruck.company + "</small>";
-        badge.style.display = "block";
-        return;
-      }
-      if (selectedCompany !== "ALL") {
-        badge.innerHTML = "Filtro: Empresa " + selectedCompany + "<small>Placa: (todas)</small>";
-        badge.style.display = "block";
-        return;
-      }
-      badge.style.display = "none";
-    }
-
-    function updateAllButtonActiveState() {
-      var btnAll = document.getElementById('btn-all-routes');
-      if (!btnAll) return;
-      btnAll.classList.toggle('active', !selectedTruck);
-    }
-
-    // ===== Hover highlight =====
-    function highlightRoute(routeId, on) {
-      var obj = mapRouteLayers[routeId];
-      if (!obj || !obj.line) return;
-
-      if (on) {
-        obj.line.setStyle({ weight: 10, opacity: 1.0 });
-        if (obj.line.bringToFront) obj.line.bringToFront();
-        if (obj.markers) {
-          for (var i = 0; i < obj.markers.length; i++) {
-            if (obj.markers[i] && obj.markers[i].bringToFront) obj.markers[i].bringToFront();
-          }
-        }
-      } else {
-        obj.line.setStyle({ weight: obj.base.weight, opacity: obj.base.opacity });
-      }
-    }
-
-    // ===== Render =====
-    function renderAll() {
-      renderFilters();
-      renderLegend();
-      renderMap();
-      renderTrucks();
-      renderRoutes();
-      updateMapBadge();
-      updateAllButtonActiveState();
-    }
-
-    function renderFilters() {
-      var q = (document.getElementById('plate-search') ? document.getElementById('plate-search').value : '')
-        .trim().toUpperCase();
-
-      var list = trucks.slice();
-      list.sort(function(a, b) {
-        if (a.plate < b.plate) return -1;
-        if (a.plate > b.plate) return 1;
-        return 0;
-      });
-
-      if (selectedCompany !== "ALL") {
-        var tmp = [];
-        for (var i = 0; i < list.length; i++) if (list[i].company === selectedCompany) tmp.push(list[i]);
-        list = tmp;
-      }
-
-      if (q) {
-        var tmp2 = [];
-        for (var i2 = 0; i2 < list.length; i2++) if (list[i2].plate.indexOf(q) !== -1) tmp2.push(list[i2]);
-        list = tmp2;
-      }
-
-      document.getElementById('plates-count').textContent = String(list.length);
-
-      var allSub = document.getElementById('all-routes-sub');
-      if (allSub) {
-        if (selectedTruck) allSub.textContent = "Empresa: " + selectedTruck.company + " • Placa: " + selectedTruck.plate;
-        else allSub.textContent = (selectedCompany === "ALL") ? "Sem filtro de placa" : ("Empresa: " + selectedCompany + " • Placa: todas");
-      }
-
-      var html = '';
-      if (list.length === 0) {
-        html = '<p class="empty-state" style="padding:16px;">Nenhuma placa encontrada</p>';
-      } else {
-        for (var i3 = 0; i3 < list.length; i3++) {
-          var t = list[i3];
-          var active = selectedTruck && selectedTruck.id === t.id;
-
-          html += '<button class="filter-btn ' + (active ? 'active' : '') + '" onclick="selectTruckFilter(' + t.id + ')">';
-          html += t.plate;
-          html += '<span class="filter-sub">Empresa: ' + t.company + '</span>';
-          html += '</button>';
-        }
-      }
-      document.getElementById('filter-buttons').innerHTML = html;
-    }
-
-    function renderLegend() {
-      var filtered = getFilteredRoutes();
-      document.getElementById('routes-count').textContent = String(filtered.length);
-
-      var html = '';
-      if (filtered.length === 0) {
-        html = '<p class="empty-state">Nenhum trecho encontrado</p>';
-      } else {
-        for (var i = 0; i < filtered.length; i++) {
-          var r = filtered[i];
-          var extra = (r.distanceKm != null) ? (' • ' + r.distanceKm.toFixed(1) + ' km') : '';
-          html += '<div class="legend-item" data-route-id="' + r.id + '" style="border-left-color: ' + r.color + ';">';
-          html +=   '<div class="legend-item-name">' + r.name + '</div>';
-          html +=   '<div class="legend-item-info">' + r.highway + ' - ' + r.state + extra + '</div>';
-          if (r.start && r.end) html += '<div class="legend-item-info">' + r.start + ' → ' + r.end + '</div>';
-          html += '</div>';
-        }
-      }
-      document.getElementById('legend-items').innerHTML = html;
-
-      var items = document.querySelectorAll('#legend-items .legend-item');
-      for (var j = 0; j < items.length; j++) {
-        (function(el){
-          var id = Number(el.getAttribute('data-route-id'));
-          el.addEventListener('mouseenter', function(){ highlightRoute(id, true); });
-          el.addEventListener('mouseleave', function(){ highlightRoute(id, false); });
-          el.addEventListener('click', function(){
-            var rr = getRouteById(id);
-            if (rr && rr.geometry && rr.geometry.length >= 2) {
-              map.fitBounds(L.latLngBounds(rr.geometry), { padding: [50, 50] });
-            }
-          });
-        })(items[j]);
-      }
-    }
-
-    function renderMap() {
-      for (var i = 0; i < layers.length; i++) map.removeLayer(layers[i]);
-      layers = [];
-      mapRouteLayers = {};
-
-      var filtered = getFilteredRoutes();
-      if (filtered.length === 0) { resetMapView(); return; }
-
-      var boundsPts = [];
-      for (var i2 = 0; i2 < filtered.length; i2++) {
-        var r = filtered[i2];
-
-        if (r.geometry && r.geometry.length >= 2) {
-          var baseStyle = { weight: 6, opacity: 0.85 };
-
-          var line = L.polyline(r.geometry, { color: r.color, weight: baseStyle.weight, opacity: baseStyle.opacity }).addTo(map);
-          layers.push(line);
-
-          var m1 = L.circleMarker(r.geometry[0], { radius: 7, fillColor: r.color, color: '#fff', weight: 2, fillOpacity: 1 }).addTo(map);
-          var m2 = L.circleMarker(r.geometry[r.geometry.length - 1], { radius: 7, fillColor: r.color, color: '#fff', weight: 2, fillOpacity: 1 }).addTo(map);
-          layers.push(m1); layers.push(m2);
-
-          mapRouteLayers[r.id] = { line: line, markers: [m1,m2], base: baseStyle };
-
-          for (var b = 0; b < r.geometry.length; b++) boundsPts.push(r.geometry[b]);
-
-          var popup = '<div><h3 style="color:' + r.color + '; margin:0 0 6px 0;">' + r.name + '</h3><p style="margin:0;">' + r.highway + ' - ' + r.state + '</p>';
-          if (r.start && r.end) popup += '<p style="margin:6px 0 0 0;">' + r.start + ' → ' + r.end + '</p>';
-          if (r.distanceKm != null) popup += '<p style="margin:6px 0 0 0;"><strong>' + r.distanceKm.toFixed(1) + ' km</strong></p>';
-          popup += '</div>';
-          line.bindPopup(popup);
-
-          line.on('mouseover', (function(id){ return function(){ highlightRoute(id, true); }; })(r.id));
-          line.on('mouseout',  (function(id){ return function(){ highlightRoute(id, false); }; })(r.id));
-        } else {
-          var coord = states[r.state];
-          if (!coord) continue;
-
-          var start = [coord[0] - 0.8, coord[1] - 0.8];
-          var end = [coord[0] + 0.8, coord[1] + 0.8];
-          boundsPts.push(start, end);
-
-          var line2 = L.polyline([start, end], { color: r.color, weight: 6, opacity: 0.8 }).addTo(map);
-          layers.push(line2);
-
-          mapRouteLayers[r.id] = { line: line2, markers: [], base: { weight: 6, opacity: 0.8 } };
-
-          line2.on('mouseover', (function(id){ return function(){ highlightRoute(id, true); }; })(r.id));
-          line2.on('mouseout',  (function(id){ return function(){ highlightRoute(id, false); }; })(r.id));
-        }
-      }
-
-      if (boundsPts.length > 0) map.fitBounds(L.latLngBounds(boundsPts), { padding: [50, 50] });
-    }
-
-    function renderTrucks() {
-      var html = '';
-      if (trucks.length === 0) {
-        html = '<p class="empty-state">Nenhuma placa cadastrada</p>';
-      } else {
-        var list = trucks.slice();
-        list.sort(function(a,b){ return (a.plate < b.plate) ? -1 : (a.plate > b.plate) ? 1 : 0; });
-
-        for (var i = 0; i < list.length; i++) {
-          html += '<div class="list-item">';
-          html +=   '<div>';
-          html +=     '<div style="font-size:18px;font-weight:950; color:#111827;">' + list[i].plate + '</div>';
-          html +=     '<div style="font-size:12px; font-weight:900; color:#6B7280; margin-top:4px;">Empresa: ' + list[i].company + '</div>';
-          html +=   '</div>';
-          html +=   '<button class="btn btn-danger" onclick="removeTruck(' + list[i].id + ')">🗑️ Remover</button>';
-          html += '</div>';
-        }
-      }
-      document.getElementById('truck-list').innerHTML = html;
-    }
-
-    function renderRoutes() {
-      var html = '';
-      if (routes.length === 0) {
-        html = '<p class="empty-state">Nenhum trecho cadastrado</p>';
-      } else {
-        for (var i = 0; i < routes.length; i++) {
-          var r = routes[i];
-          html += '<div class="card" style="border-left-color:' + r.color + '"><div class="card-header"><div>';
-          html += '<div class="card-title">' + r.name + '</div>';
-
-          var dist = (r.distanceKm != null) ? (' • ' + r.distanceKm.toFixed(1) + ' km') : '';
-          html += '<div class="card-subtitle">' + r.highway + ' - ' + r.state + dist + '</div>';
-
-          if (r.start && r.end) html += '<div class="card-subtitle">' + r.start + ' → ' + r.end + '</div>';
-
-          var geoOk = (r.geometry && r.geometry.length >= 2) ? '✅ Traçado real' : '⚠ Sem traçado (use “Selecionar no mapa”)';
-          html += '<div class="card-subtitle" style="margin-top:8px;"><strong>' + geoOk + '</strong></div>';
-
-          html += '</div><div style="display:flex; gap:10px;">';
-          html += '<button class="btn btn-warn" onclick="editRoute(' + r.id + ')">✏️</button>';
-          html += '<button class="btn btn-danger" onclick="deleteRoute(' + r.id + ')">🗑️</button>';
-          html += '</div></div>';
-
-          html += '<div><strong>Placas Autorizadas:</strong><div class="truck-badges">';
-          for (var j = 0; j < trucks.length; j++) {
-            var hasPermission = false;
-            for (var k = 0; k < r.allowedTrucks.length; k++) if (r.allowedTrucks[k] === trucks[j].id) { hasPermission = true; break; }
-            html += '<span class="badge ' + (hasPermission ? 'active' : '') + '" onclick="toggleTruck(' + r.id + ',' + trucks[j].id + ')">';
-            html += trucks[j].plate + '</span>';
-          }
-          html += '</div></div></div>';
-        }
-      }
-      document.getElementById('route-list').innerHTML = html;
-    }
-
-    // ===== Modal / OSRM =====
-    function openOsrmModal() {
-      var modal = document.getElementById('osrm-modal');
-      modal.classList.add('active');
-
-      if (!osrmModalReady) {
-        osrmModalMap = L.map('osrm-modal-map').setView([-14.2350, -51.9253], 4);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© OpenStreetMap'
-        }).addTo(osrmModalMap);
-
-        osrmModalMap.on('click', function(e) {
-          if (!osrmSelecting) return;
-          if (osrmStage === 0) setOsrmStart(e.latlng);
-          else if (osrmStage === 1) { setOsrmEnd(e.latlng); fetchOsrmRoute(osrmStart, osrmEnd); }
-        });
-
-        osrmModalReady = true;
-      }
-
-      setTimeout(function() {
-        osrmModalMap.invalidateSize();
-
-        if (editingRouteId) {
-          var r = getRouteById(editingRouteId);
-          if (r && r.geometry && r.geometry.length >= 2) {
-            drawTempRoute(r.geometry, r.color);
-            fitCoords(r.geometry);
-            setOsrmStatus("Edição ativa: clique em <strong>Iniciar seleção</strong> para marcar novo Início/Fim e substituir o traçado.");
-          } else {
-            setOsrmStatus("Clique em <strong>Iniciar seleção</strong> e marque Início e Fim.");
-          }
-        } else if (pendingGeometry && pendingGeometry.length >= 2) {
-          drawTempRoute(pendingGeometry, document.getElementById('route-color').value || '#3B82F6');
-          fitCoords(pendingGeometry);
-          setOsrmStatus("Trecho já calculado. Você pode clicar em <strong>Adicionar / Salvar</strong>.");
-        } else {
-          setOsrmStatus("Clique em <strong>Iniciar seleção</strong> e marque Início e Fim.");
-          osrmModalMap.setView([-14.2350, -51.9253], 4);
-        }
-      }, 150);
-    }
-
-    function closeOsrmModal() { document.getElementById('osrm-modal').classList.remove('active'); }
-    function closeOsrmModalOnBackdrop(ev) { if (ev.target && ev.target.id === 'osrm-modal') closeOsrmModal(); }
-    function setOsrmStatus(html) { document.getElementById('osrm-status').innerHTML = html; }
-
-    function startOsrmSelection() {
-      osrmSelecting = true; osrmStage = 0; osrmStart = null; osrmEnd = null;
-      pendingGeometry = null; pendingDistanceKm = null;
-      clearOsrmTemp();
-      setOsrmStatus("Seleção ativa: clique no mapa para marcar o <strong>INÍCIO</strong> do trecho.");
-    }
-
-    function cancelOsrmSelection() {
-      osrmSelecting = false; osrmStage = 0; osrmStart = null; osrmEnd = null;
-      pendingGeometry = null; pendingDistanceKm = null;
-      clearOsrmTemp();
-      setOsrmStatus("Seleção cancelada.");
-    }
-
-    function setOsrmStart(latlng) {
-      osrmStart = latlng; osrmStage = 1;
-      if (osrmStartMarker) osrmModalMap.removeLayer(osrmStartMarker);
-      osrmStartMarker = L.circleMarker(latlng, { radius: 9, fillColor: "#10B981", color: "#fff", weight: 2, fillOpacity: 1 })
-        .addTo(osrmModalMap).bindPopup("Início");
-      setOsrmStatus("Início marcado. Agora clique no mapa para marcar o <strong>FIM</strong>.");
-    }
-
-    function setOsrmEnd(latlng) {
-      osrmEnd = latlng;
-      if (osrmEndMarker) osrmModalMap.removeLayer(osrmEndMarker);
-      osrmEndMarker = L.circleMarker(latlng, { radius: 9, fillColor: "#EF4444", color: "#fff", weight: 2, fillOpacity: 1 })
-        .addTo(osrmModalMap).bindPopup("Fim");
-      setOsrmStatus("Fim marcado. Calculando rota pela rodovia (OSRM)...");
-    }
-
-    function clearOsrmTemp() {
-      if (!osrmModalReady) return;
-      if (osrmStartMarker) { osrmModalMap.removeLayer(osrmStartMarker); osrmStartMarker = null; }
-      if (osrmEndMarker) { osrmModalMap.removeLayer(osrmEndMarker); osrmEndMarker = null; }
-      if (osrmTempRouteLayer) { osrmModalMap.removeLayer(osrmTempRouteLayer); osrmTempRouteLayer = null; }
-    }
-
-    function drawTempRoute(latlngs, color) {
-      if (!osrmModalReady) return;
-      if (osrmTempRouteLayer) osrmModalMap.removeLayer(osrmTempRouteLayer);
-      osrmTempRouteLayer = L.polyline(latlngs, { color: color, weight: 8, opacity: 0.9 }).addTo(osrmModalMap);
-      osrmTempRouteLayer.bindPopup("Trecho selecionado (preview)");
-    }
-
-    function fitCoords(coords) {
-      if (!osrmModalReady) return;
-      osrmModalMap.fitBounds(L.latLngBounds(coords), { padding: [50, 50] });
-    }
-
-    function fitTempOrLastRoute() {
-      var modalOpen = document.getElementById('osrm-modal').classList.contains('active');
-
-      if (modalOpen && osrmModalReady) {
-        if (pendingGeometry && pendingGeometry.length >= 2) { fitCoords(pendingGeometry); return; }
-        if (editingRouteId) {
-          var r = getRouteById(editingRouteId);
-          if (r && r.geometry && r.geometry.length >= 2) { fitCoords(r.geometry); return; }
-        }
-        osrmModalMap.setView([-14.2350, -51.9253], 4);
-        return;
-      }
-      fitToFilteredRoutes();
-    }
-
-    function getRouteById(id) {
-      for (var i = 0; i < routes.length; i++) if (routes[i].id === id) return routes[i];
-      return null;
-    }
-
-    async function fetchOsrmRoute(startLatLng, endLatLng) {
-      try {
-        var start = startLatLng.lng + "," + startLatLng.lat;
-        var end = endLatLng.lng + "," + endLatLng.lat;
-
-        var url = OSRM_BASE + "/route/v1/driving/" + start + ";" + end + "?geometries=geojson&overview=full&steps=false";
-        var res = await fetch(url);
-        if (!res.ok) throw new Error("OSRM HTTP " + res.status);
-
-        var data = await res.json();
-        if (!data || !data.routes || !data.routes[0] || !data.routes[0].geometry) throw new Error("Resposta OSRM inválida");
-
-        var geom = data.routes[0].geometry;
-        var coords = geom.coordinates;
-        if (!coords || coords.length < 2) throw new Error("Geometria curta");
-
-        var latlngs = [];
-        for (var i = 0; i < coords.length; i++) latlngs.push([coords[i][1], coords[i][0]]);
-
-        pendingGeometry = latlngs;
-        pendingDistanceKm = (data.routes[0].distance != null) ? (data.routes[0].distance / 1000.0) : null;
-
-        var c = document.getElementById('route-color').value || '#3B82F6';
-        drawTempRoute(latlngs, c);
-        fitCoords(latlngs);
-
-        osrmSelecting = false;
-        osrmStage = 0;
-
-        var distTxt = (pendingDistanceKm != null) ? ("<br><strong>Distância:</strong> " + pendingDistanceKm.toFixed(1) + " km") : "";
-        setOsrmStatus("Trecho calculado e destacado ✅" + distTxt + "<br>Agora feche o popup e clique em <strong>Adicionar / Salvar</strong>.");
-
-      } catch (err) {
-        setOsrmStatus("Falha ao calcular rota (OSRM). Verifique internet. Erro: <strong>" + (err.message || err) + "</strong>");
-        osrmSelecting = false;
-        osrmStage = 0;
-      }
-    }
-
-  
-
-// --- Wire auth buttons (Pages build safety) ---
-(function wireAuthButtons(){
-  const btnLogin = document.getElementById("auth-login-btn");
-  const btnSignup = document.getElementById("auth-signup-btn");
-  const email = document.getElementById("auth-email");
-  const pass = document.getElementById("auth-password");
-
-  if (btnLogin && !btnLogin.__wired){
-    btnLogin.__wired = true;
-    btnLogin.addEventListener("click", (e) => { e.preventDefault(); doLogin(); });
-  }
-  if (btnSignup && !btnSignup.__wired){
-    btnSignup.__wired = true;
-    btnSignup.addEventListener("click", (e) => { e.preventDefault(); doSignup(); });
-  }
-
-  // Enter = login
-  const onEnter = (e) => { if (e.key === "Enter") { e.preventDefault(); doLogin(); } };
-  if (email) email.addEventListener("keydown", onEnter);
-  if (pass) pass.addEventListener("keydown", onEnter);
-})();
-
-
-
-// === Microsoft (Azure) login only ===
-function setAuthStatus(msg, isError) {
-  const el = document.getElementById("auth-status");
-  if (!el) return;
-  if (!msg) {
-    el.style.display = "none";
-    el.textContent = "";
-    return;
-  }
-  el.style.display = "block";
-  el.textContent = msg;
-  el.style.borderColor = isError ? "#FCA5A5" : "#93C5FD";
-}
-
-async function doMicrosoftLogin() {
-  try {
-    setAuthStatus("Redirecionando para Microsoft...", false);
-    const supa = window.supabaseClient;
-    if (!supa) throw new Error("Supabase não inicializado.");
-    const { error } = await supa.auth.signInWithOAuth({
-      provider: "azure",
-      options: {
-        redirectTo: "https://aet-eeg.pages.dev/"
-      }
-    });
-    if (error) throw error;
-  } catch (e) {
-    setAuthStatus(e?.message || String(e), true);
-  }
-}
-
-(function wireMicrosoftButton(){
-  const btn = document.getElementById("auth-ms-btn");
-  if (btn && !btn.__wired){
-    btn.__wired = true;
-    btn.addEventListener("click", (e)=>{ e.preventDefault(); doMicrosoftLogin(); });
-  }
-})();
-
-</script>
-
-<!-- AUTH MODAL -->
-<div id="auth-modal" class="modal-backdrop active" onclick="/* bloquear clique fora */">
-  <div class="modal" onclick="event.stopPropagation()" style="max-width:540px;">
-        <div class="modal-header auth-header">
-      <img class="auth-logo" src="https://vivaintra-s3-potencial.s3.amazonaws.com/temp/d39ad6a1bff5ed678d5ae138c597b8d5c3df5993.png" alt="Grupo Potencial">
-      <div class="auth-title">Acesso ao Sistema</div>
-      <div class="auth-subtitle">Gerenciamento de Autorização Especial de Trânsito</div>
-    </div>
-    <div class="modal-body">
-      <div class="mini-status" style="margin-top:0;">
-        Entre com seu e-mail e senha. Se for o primeiro acesso, clique em <strong></strong>.
+  <div id="auth-modal" class="modal-backdrop active" onclick="/* bloquear clique fora */">
+    <div class="modal" onclick="event.stopPropagation()" style="max-width:540px;">
+      <div class="modal-header auth-header">
+        <img class="auth-logo" src="https://vivaintra-s3-potencial.s3.amazonaws.com/temp/d39ad6a1bff5ed678d5ae138c597b8d5c3df5993.png" alt="Grupo Potencial">
+        <div class="auth-title">Acesso ao Sistema</div>
+        <div class="auth-subtitle">Gerenciamento de Autorização Especial de Trânsito</div>
       </div>
-
-      <div style="display:grid; gap:10px; margin-top:14px;">
+      <div class="modal-body">
+        <div class="mini-status" style="margin-top:0;">
+          Entre com seu e-mail e senha.
         </div>
 
-      <div class="modal-actions" style="margin-top:14px;">
-        <button id="auth-login-btn" class="btn btn-primary" style="flex:1;">Entrar</button>
-        <button id="auth-signup-btn" class="btn btn-gray" style="flex:1;"></button>
+        <div style="display:grid; gap:10px; margin-top:14px;">
+          <input id="auth-email" type="email" placeholder="E-mail" autocomplete="email" />
+          <input id="auth-password" type="password" placeholder="Senha" autocomplete="current-password" />
+        </div>
+
+        <div id="auth-status" class="mini-status" style="margin-top:14px; color:#374151; display:none;"></div>
       </div>
-
-      <div id="auth-status" class="mini-status" style="margin-top:14px; color:#374151;"></div>
-
-      <div class="mini-status" style="margin-top:14px;">
-        <strong>Importante:</strong> o Supabase pode exigir confirmação de e-mail no cadastro, dependendo da configuração do projeto.
-      </div>
-    </div>
-  </div>
-</div>
-<!-- /AUTH MODAL -->
-
-</body>
-</html>
+      
+      <div class="modal-actions" style="padding: 0 18px 18px 18px;">
+        <button id="auth-login-btn" class="btn btn-primary" style="width:100%;">Entrar</button>
+      
