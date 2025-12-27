@@ -618,8 +618,6 @@
 <script>
   // === Supabase init ===
   window.supabaseClient = window.supabase.createClient("https://nhvprvgxnlrfulztxcnk.supabase.co", "sb_publishable_UgKnunwjhVS6lJ3UdECo9A_4goASXnb");
-  // keep backward compatibility if code expects `supabase`
-  window.supabase = window.supabaseClient;
 </script>
 
 </head>
@@ -770,20 +768,25 @@
             </div>
 
             <div class="modal-body">
-              <div id="osrm-status" class="mini-status">
-                Clique em “Iniciar seleção” e marque Início e Fim.
-              </div>
+      <div class="info-box">
+        Use sua conta corporativa Microsoft para acessar.
+      </div>
 
-              <div id="osrm-modal-map"></div>
+      <button id="auth-ms-btn" class="btn btn-primary" style="width:100%; margin-top:12px;">
+        Entrar com Microsoft
+      </button>
 
-              <div class="modal-actions">
-                <button class="btn btn-dark" style="flex:1;" onclick="startOsrmSelection()">🎯 Iniciar seleção</button>
-                <button class="btn btn-gray" style="flex:1;" onclick="cancelOsrmSelection()">Cancelar</button>
-                <button class="btn btn-primary" style="flex:1;" onclick="fitTempOrLastRoute()">Enquadrar</button>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div class="hint" style="margin-top:12px; color:#64748B; font-weight:700; font-size:12px; text-align:center;">
+        Acesso restrito a contas @grpotencial.com.br
+      </div>
+
+      <div id="auth-status" class="mini-status" style="margin-top:12px; display:none;"></div>
+    <div class="modal-actions">
+      <!-- actions removed: Microsoft-only login -->
+    </div>
+  </div>
+</div>
+</div>
         <!-- /MODAL -->
       </div>
     </div>
@@ -1543,6 +1546,47 @@
   if (pass) pass.addEventListener("keydown", onEnter);
 })();
 
+
+
+// === Microsoft (Azure) login only ===
+function setAuthStatus(msg, isError) {
+  const el = document.getElementById("auth-status");
+  if (!el) return;
+  if (!msg) {
+    el.style.display = "none";
+    el.textContent = "";
+    return;
+  }
+  el.style.display = "block";
+  el.textContent = msg;
+  el.style.borderColor = isError ? "#FCA5A5" : "#93C5FD";
+}
+
+async function doMicrosoftLogin() {
+  try {
+    setAuthStatus("Redirecionando para Microsoft...", false);
+    const supa = window.supabaseClient;
+    if (!supa) throw new Error("Supabase não inicializado.");
+    const { error } = await supa.auth.signInWithOAuth({
+      provider: "azure",
+      options: {
+        redirectTo: "https://aet-eeg.pages.dev/"
+      }
+    });
+    if (error) throw error;
+  } catch (e) {
+    setAuthStatus(e?.message || String(e), true);
+  }
+}
+
+(function wireMicrosoftButton(){
+  const btn = document.getElementById("auth-ms-btn");
+  if (btn && !btn.__wired){
+    btn.__wired = true;
+    btn.addEventListener("click", (e)=>{ e.preventDefault(); doMicrosoftLogin(); });
+  }
+})();
+
 </script>
 
 <!-- AUTH MODAL -->
@@ -1559,9 +1603,7 @@
       </div>
 
       <div style="display:grid; gap:10px; margin-top:14px;">
-        <input id="auth-email" type="email" placeholder="E-mail" autocomplete="email" />
-        <input id="auth-password" type="password" placeholder="Senha" autocomplete="current-password" />
-      </div>
+        </div>
 
       <div class="modal-actions" style="margin-top:14px;">
         <button id="auth-login-btn" class="btn btn-primary" style="flex:1;">Entrar</button>
