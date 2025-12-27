@@ -611,6 +611,13 @@
   margin-top: -4px !important;
 }
 
+
+/* Selected legend item + route highlight */
+.legend-item.selected{
+  background: rgba(30,79,158,0.08);
+  box-shadow: inset 0 0 0 2px rgba(30,79,158,0.35);
+}
+
 </style>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1235,13 +1242,26 @@
       var items = document.querySelectorAll('#legend-items .legend-item');
       for (var j = 0; j < items.length; j++) {
         (function(el){
-          var id = Number(el.getAttribute('data-route-id'));
+          var id = el.getAttribute('data-route-id');
           el.addEventListener('mouseenter', function(){ highlightRoute(id, true); });
           el.addEventListener('mouseleave', function(){ highlightRoute(id, false); });
           el.addEventListener('click', function(){
+            // keep selection highlight
+            if (window.__selectedLegendRouteId && window.__selectedLegendRouteId !== id) {
+              highlightRoute(window.__selectedLegendRouteId, false);
+              // remove selected class from previous
+              var prev = document.querySelector('.legend-item.selected[data-route-id="' + window.__selectedLegendRouteId + '"]');
+              if (prev) prev.classList.remove('selected');
+            }
+            window.__selectedLegendRouteId = id;
+            el.classList.add('selected');
+            highlightRoute(id, true);
+
             var rr = getRouteById(id);
             if (rr && rr.geometry && rr.geometry.length >= 2) {
               map.fitBounds(L.latLngBounds(rr.geometry), { padding: [50, 50] });
+            }
+          });
             }
           });
         })(items[j]);
