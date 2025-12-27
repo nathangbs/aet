@@ -1317,7 +1317,7 @@
           html +=     '<div style="font-size:18px;font-weight:950; color:#111827;">' + list[i].plate + '</div>';
           html +=     '<div style="font-size:12px; font-weight:900; color:#6B7280; margin-top:4px;">Empresa: ' + list[i].company + '</div>';
           html +=   '</div>';
-          html +=   '<button class="btn btn-danger" onclick="removeTruck(' + list[i].id + ')">🗑️ Remover</button>';
+          html +=   '<button class="btn btn-danger" onclick="removeTruck(\\'' + list[i].id + '\\')">🗑️ Remover</button>';
           html += '</div>';
         }
       }
@@ -1343,15 +1343,15 @@
           html += '<div class="card-subtitle" style="margin-top:8px;"><strong>' + geoOk + '</strong></div>';
 
           html += '</div><div style="display:flex; gap:10px;">';
-          html += '<button class="btn btn-warn" onclick="editRoute(' + r.id + ')">✏️</button>';
-          html += '<button class="btn btn-danger" onclick="deleteRoute(' + r.id + ')">🗑️</button>';
+          html += '<button class="btn btn-warn" onclick="editRoute(\\'' + r.id + '\\')">✏️</button>';
+          html += '<button class="btn btn-danger" onclick="deleteRoute(\\'' + r.id + '\\')">🗑️</button>';
           html += '</div></div>';
 
           html += '<div><strong>Placas Autorizadas:</strong><div class="truck-badges">';
           for (var j = 0; j < trucks.length; j++) {
             var hasPermission = false;
             for (var k = 0; k < r.allowedTrucks.length; k++) if (r.allowedTrucks[k] === trucks[j].id) { hasPermission = true; break; }
-            html += '<span class="badge ' + (hasPermission ? 'active' : '') + '" onclick="toggleTruck(' + r.id + ',' + trucks[j].id + ')">';
+            html += '<span class="badge ' + (hasPermission ? 'active' : '') + '" onclick="toggleTruck(\\'' + r.id + '\\',\\'' + trucks[j].id + '\\')">';
             html += trucks[j].plate + '</span>';
           }
           html += '</div></div></div>';
@@ -1873,6 +1873,74 @@ if(window.supabaseClient){
       selectedCompany = "ALL";
       renderAll();
     }
+  });
+}
+
+
+
+/* ===== User badge + logout (first name) ===== */
+function _firstNameFromUser(user){
+  if(!user) return null;
+  const meta = user.user_metadata || {};
+  const full = (meta.full_name || meta.name || user.email || "").trim();
+  if(!full) return null;
+  // If it's an email, take before @ then capitalize first part
+  if(full.includes("@")){
+    const left = full.split("@")[0];
+    const token = left.split(/[._-]/)[0] || left;
+    return token.charAt(0).toUpperCase() + token.slice(1);
+  }
+  return full.split(" ")[0];
+}
+
+async function updateUserBadge(){
+  const badge = document.getElementById("user-badge");
+  const btn = document.getElementById("btn-logout");
+  if(!badge && !btn) return;
+
+  const supa = window.supabaseClient;
+  if(!supa){
+    if(badge) badge.textContent = "Deslogado";
+    if(btn) btn.style.display = "none";
+    return;
+  }
+
+  const { data } = await supa.auth.getSession();
+  const user = data?.session?.user || null;
+
+  if(user){
+    const first = _firstNameFromUser(user) || "Logado";
+    if(badge) badge.textContent = first;
+    if(btn) btn.style.display = "inline-flex";
+  }else{
+    if(badge) badge.textContent = "Deslogado";
+    if(btn) btn.style.display = "none";
+  }
+}
+
+async function doLogout(){
+  try{
+    const supa = window.supabaseClient;
+    if(supa) await supa.auth.signOut();
+  }finally{
+    await updateUserBadge();
+    // if your app gates content behind auth modal:
+    if(typeof showAuthModal === "function") showAuthModal(true);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const btn = document.getElementById("btn-logout");
+  if(btn && !btn.__wired){
+    btn.__wired = true;
+    btn.addEventListener("click", (e)=>{ e.preventDefault(); doLogout(); });
+  }
+  updateUserBadge();
+});
+
+if(window.supabaseClient){
+  window.supabaseClient.auth.onAuthStateChange(() => {
+    updateUserBadge();
   });
 }
 
