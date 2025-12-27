@@ -1608,5 +1608,71 @@ document.addEventListener("DOMContentLoaded", () => {
 </div>
 <!-- /AUTH MODAL -->
 
+
+<script>
+  function _firstNameFromUser(user){
+    const raw = (user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || "").toString().trim();
+    if(!raw) return "";
+    const local = raw.includes("@") ? raw.split("@")[0] : raw;
+    const token = local.split(/[\s._-]+/).filter(Boolean)[0] || local;
+    return token.charAt(0).toUpperCase() + token.slice(1);
+  }
+
+  async function atualizarBadgeUsuario(){
+    const badge = document.getElementById("user-badge");
+    const btnLogout = document.getElementById("btn-logout");
+    if(!badge) return;
+
+    try{
+      const supa = window.supabaseClient;
+      if(!supa){ badge.textContent = "Deslogado"; if(btnLogout) btnLogout.style.display="none"; return; }
+
+      const { data } = await supa.auth.getSession();
+      const user = data?.session?.user || null;
+
+      if(user){
+        const primeiroNome = _firstNameFromUser(user);
+        badge.textContent = primeiroNome || "Logado";
+        if(btnLogout) btnLogout.style.display = "inline-flex";
+      }else{
+        badge.textContent = "Deslogado";
+        if(btnLogout) btnLogout.style.display = "none";
+      }
+    }catch(e){
+      badge.textContent = "Deslogado";
+      if(btnLogout) btnLogout.style.display = "none";
+    }
+  }
+
+  async function sair(){
+    try{
+      const supa = window.supabaseClient;
+      if(!supa) return;
+      await supa.auth.signOut();
+      const modal = document.getElementById("auth-modal");
+      if(modal) modal.classList.add("active");
+    } finally {
+      atualizarBadgeUsuario();
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    atualizarBadgeUsuario();
+
+    const btnLogout = document.getElementById("btn-logout");
+    if(btnLogout && !btnLogout.__wired){
+      btnLogout.__wired = true;
+      btnLogout.addEventListener("click", (e)=>{ e.preventDefault(); sair(); });
+    }
+
+    const supa = window.supabaseClient;
+    if(supa && supa.auth && typeof supa.auth.onAuthStateChange === "function"){
+      supa.auth.onAuthStateChange(() => {
+        atualizarBadgeUsuario();
+      });
+    }
+  });
+</script>
+
 </body>
 </html>
