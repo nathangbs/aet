@@ -841,10 +841,184 @@
     var osrmEndMarker = null;
     var osrmTempRouteLayer = null;
 
-    var pendingGeometry = null;
+    var 
+      // Persistência no Supabase
+      try{
+        if (editingRouteId) {
+          // já atualizamos em memória; agora atualiza no banco
+          await dbUpsertRoute(routes.find(r => r.id === editingRouteId));
+          await dbSyncRouteTrucks(editingRouteId, (routes.find(r => r.id === editingRouteId)?.allowedTrucks || []));
+        } else {
+          // última rota adicionada é a nova
+          var last = routes[routes.length - 1];
+          var rid = await dbUpsertRoute({ id: null, name: last.name, state: last.state, highway: last.highway, color: last.color, start: last.start, end: last.end, geometry: last.geometry, distanceKm: last.distanceKm });
+          if(rid){
+            last.id = rid;
+            await dbSyncRouteTrucks(rid, last.allowedTrucks || []);
+          }
+        }
+      }catch(e){
+        console.warn("Falha ao salvar no Supabase:", e?.message || e);
+      }
+
+pendingGeometry = null;
     var pendingDistanceKm = null;
 
-    var OSRM_BASE = "https://router.project-osrm.org";
+    
+    // ===== Supabase persistence (Placas & Trechos) =====
+    // Tabelas esperadas no Supabase:
+    // - aet_trucks (id uuid pk default gen_random_uuid(), user_id uuid, plate text, company text, created_at timestamptz)
+    // - aet_routes (id uuid pk default gen_random_uuid(), user_id uuid, name text, state text, highway text, color text,
+    //              start text, end text, geometry jsonb, distance_km numeric, created_at timestamptz)
+    // - aet_route_trucks (id uuid pk default gen_random_uuid(), user_id uuid, route_id uuid, truck_id uuid, created_at timestamptz)
+
+    async function _sbUserId(){
+      const supa = window.supabaseClient;
+      const { data } = await supa.auth.getSession();
+      return data?.session?.user?.id || null;
+    }
+
+    async function dbLoadAll(){
+      const supa = window.supabaseClient;
+      const userId = await _sbUserId();
+      if(!userId) return;
+
+      // 1) Placas
+      const { data: tData, error: tErr } = await supa
+        .from("aet_trucks")
+        .select("id, plate, company")
+        .eq("user_id", userId)
+        .order("plate", { ascending: true });
+      if(tErr) { console.warn("Erro carregando placas:", tErr.message); return; }
+
+      trucks = (tData || []).map(t => ({ id: t.id, plate: String(t.plate||"").toUpperCase(), company: String(t.company||"POTENCIAL").toUpperCase() }));
+
+      // 2) Trechos
+      const { data: rData, error: rErr } = await supa
+        .from("aet_routes")
+        .select("id, name, state, highway, color, start, end, geometry, distance_km")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: true });
+      if(rErr) { console.warn("Erro carregando trechos:", rErr.message); return; }
+
+      routes = (rData || []).map(r => ({
+        id: r.id,
+        name: r.name,
+        state: r.state,
+        highway: r.highway,
+        color: r.color || "#1E4F9E",
+        start: r.start || "",
+        end: r.end || "",
+        allowedTrucks: [],
+        geometry: r.geometry || null,
+        distanceKm: (r.distance_km === null || r.distance_km === undefined) ? null : Number(r.distance_km)
+      }));
+
+      // 3) Permissões (route x trucks)
+      const { data: rtData, error: rtErr } = await supa
+        .from("aet_route_trucks")
+        .select("route_id, truck_id")
+        .eq("user_id", userId);
+      if(rtErr) { console.warn("Erro carregando permissões:", rtErr.message); renderAll(); return; }
+
+      const allowedByRoute = {};
+      (rtData || []).forEach(x => {
+        if(!allowedByRoute[x.route_id]) allowedByRoute[x.route_id] = [];
+        allowedByRoute[x.route_id].push(x.truck_id);
+      });
+
+      for(let i=0;i<routes.length;i++){
+        const rid = routes[i].id;
+        routes[i].allowedTrucks = (allowedByRoute[rid] || []).slice();
+      }
+
+      await dbDeleteTruck(id);
+
+      renderAll();
+      _debouncedSyncPerms(routeId);
+    }
+
+    async function dbUpsertTruck(plate, company){
+      const supa = window.supabaseClient;
+      const userId = await _sbUserId();
+      if(!userId) return null;
+
+      const payload = { user_id: userId, plate: plate.toUpperCase(), company: company.toUpperCase() };
+      // upsert por (user_id, plate)
+      const { data, error } = await supa
+        .from("aet_trucks")
+        .upsert(payload, { onConflict: "user_id,plate" })
+        .select("id")
+        .single();
+      if(error){ console.warn("Erro salvando placa:", error.message); return null; }
+      return data?.id || null;
+    }
+
+    async function dbDeleteTruck(truckId){
+      const supa = window.supabaseClient;
+      const userId = await _sbUserId();
+      if(!userId) return;
+
+      // remove permissões antes (para não violar FK)
+      await supa.from("aet_route_trucks").delete().eq("user_id", userId).eq("truck_id", truckId);
+      const { error } = await supa.from("aet_trucks").delete().eq("user_id", userId).eq("id", truckId);
+      if(error) console.warn("Erro removendo placa:", error.message);
+    }
+
+    async function dbUpsertRoute(routeObj){
+      const supa = window.supabaseClient;
+      const userId = await _sbUserId();
+      if(!userId) return null;
+
+      const payload = {
+        user_id: userId,
+        name: routeObj.name,
+        state: routeObj.state,
+        highway: routeObj.highway,
+        color: routeObj.color,
+        start: routeObj.start || "",
+        end: routeObj.end || "",
+        geometry: routeObj.geometry || null,
+        distance_km: (routeObj.distanceKm === null || routeObj.distanceKm === undefined) ? null : Number(routeObj.distanceKm)
+      };
+
+      // se já tem id, atualiza; senão cria
+      if(routeObj.id){
+        const { error } = await supa.from("aet_routes").update(payload).eq("user_id", userId).eq("id", routeObj.id);
+        if(error){ console.warn("Erro atualizando trecho:", error.message); return null; }
+        return routeObj.id;
+      } else {
+        const { data, error } = await supa.from("aet_routes").insert(payload).select("id").single();
+        if(error){ console.warn("Erro criando trecho:", error.message); return null; }
+        return data?.id || null;
+      }
+    }
+
+    async function dbDeleteRoute(routeId){
+      const supa = window.supabaseClient;
+      const userId = await _sbUserId();
+      if(!userId) return;
+      await supa.from("aet_route_trucks").delete().eq("user_id", userId).eq("route_id", routeId);
+      const { error } = await supa.from("aet_routes").delete().eq("user_id", userId).eq("id", routeId);
+      if(error) console.warn("Erro removendo trecho:", error.message);
+    }
+
+    async function dbSyncRouteTrucks(routeId, allowedTruckIds){
+      const supa = window.supabaseClient;
+      const userId = await _sbUserId();
+      if(!userId) return;
+
+      // estratégia simples: apaga e recria
+      await supa.from("aet_route_trucks").delete().eq("user_id", userId).eq("route_id", routeId);
+
+      const rows = (allowedTruckIds || []).map(tid => ({ user_id: userId, route_id: routeId, truck_id: tid }));
+      if(rows.length){
+        const { error } = await supa.from("aet_route_trucks").insert(rows);
+        if(error) console.warn("Erro salvando permissões:", error.message);
+      }
+    }
+
+var OSRM_BASE = "https://router.project-osrm.org";
 
     window.onload = function() {
       map = L.map('map').setView([-14.2350, -51.9253], 4);
@@ -863,7 +1037,10 @@
       }
 
       renderAll();
-    };
+    
+      // Carrega dados do Supabase (placas/trechos) após login
+      setTimeout(function(){ if(typeof dbLoadAll==="function") dbLoadAll(); }, 0);
+};
 
     function showTab(ev, name) {
       var tabs = document.querySelectorAll('.tab');
@@ -913,7 +1090,7 @@
     }
 
     // ===== Trucks (empresa + sem duplicar placa) =====
-    function addTruck() {
+    async function addTruck() {
       var input = document.getElementById('new-truck');
       var plate = input.value.trim().toUpperCase();
       var company = (document.getElementById('new-truck-company').value || "POTENCIAL").toUpperCase();
@@ -926,7 +1103,8 @@
         }
       }
 
-      trucks.push({ id: Date.now(), plate: plate, company: company });
+      var newId = await dbUpsertTruck(plate, company);
+      trucks.push({ id: newId || Date.now(), plate: plate, company: company });
       input.value = '';
       renderAll();
     }
@@ -950,7 +1128,7 @@
     }
 
     // ===== Routes (add/edit) =====
-    function saveRoute() {
+    async function saveRoute() {
       var name = document.getElementById('route-name').value.trim();
       var state = document.getElementById('route-state').value;
       var highway = document.getElementById('route-highway').value.trim();
@@ -1034,12 +1212,13 @@
       renderAll();
     }
 
-    function deleteRoute(id) {
+    async function deleteRoute(id) {
       var newRoutes = [];
       for (var i = 0; i < routes.length; i++) if (routes[i].id !== id) newRoutes.push(routes[i]);
       routes = newRoutes;
 
-      if (editingRouteId === id) cancelEdit();
+      await dbDeleteRoute(id);
+if (editingRouteId === id) cancelEdit();
       renderAll();
     }
 
@@ -1054,7 +1233,23 @@
       document.getElementById('btn-cancel-edit').style.display = 'none';
     }
 
-    // ===== Permissions =====
+    
+    // Debounce para salvar permissões sem excesso de chamadas
+    var _permSaveTimers = {};
+    function _debouncedSyncPerms(routeId){
+      try{
+        if(_permSaveTimers[routeId]) clearTimeout(_permSaveTimers[routeId]);
+        _permSaveTimers[routeId] = setTimeout(async function(){
+          var r = null;
+          for (var i=0;i<routes.length;i++) if(routes[i].id === routeId){ r = routes[i]; break; }
+          if(r && r.id && typeof dbSyncRouteTrucks === "function"){
+            await dbSyncRouteTrucks(r.id, r.allowedTrucks || []);
+          }
+        }, 350);
+      }catch(e){ console.warn(e); }
+    }
+
+// ===== Permissions =====
     function toggleTruck(routeId, truckId) {
       for (var i = 0; i < routes.length; i++) {
         if (routes[i].id === routeId) {
@@ -1543,7 +1738,9 @@ async function doLogin(){
     if(!supa) throw new Error("Supabase não inicializado.");
     const { error } = await supa.auth.signInWithPassword({ email, password });
     if(error) throw error;
-    setAuthStatus("Logout ✅", false);
+    
+    try{ if(typeof dbLoadAll==="function") setTimeout(dbLoadAll, 0); }catch(e){}
+setAuthStatus("Login OK ✅", false);
     // o onAuthStateChange do seu app deve fechar o modal; se não, fechamos aqui:
     const modal = document.getElementById("auth-modal");
     if(modal) modal.classList.remove("active");
