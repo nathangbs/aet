@@ -1552,19 +1552,28 @@ async function doLogin(){
   }
 }
 
-(function wireAuthLogin(){
+
+function wireAuthLogin(){
   const btn = document.getElementById("auth-login-btn");
   const email = document.getElementById("auth-email");
   const pass = document.getElementById("auth-password");
+
   if(btn && !btn.__wired){
     btn.__wired = true;
     btn.addEventListener("click", (e)=>{ e.preventDefault(); doLogin(); });
   }
-  const onEnter = (e)=>{ if(e.key==="Enter"){ e.preventDefault(); doLogin(); } };
-  if(email) email.addEventListener("keydown", onEnter);
-  if(pass) pass.addEventListener("keydown", onEnter);
-})();
 
+  const onEnter = (e)=>{ if(e.key==="Enter"){ e.preventDefault(); doLogin(); } };
+  if(email && !email.__wiredEnter){ email.__wiredEnter = true; email.addEventListener("keydown", onEnter); }
+  if(pass && !pass.__wiredEnter){ pass.__wiredEnter = true; pass.addEventListener("keydown", onEnter); }
+}
+
+// Wire after DOM is ready, and also retry shortly in case modal is injected later
+document.addEventListener("DOMContentLoaded", () => {
+  wireAuthLogin();
+  setTimeout(wireAuthLogin, 250);
+  setTimeout(wireAuthLogin, 1000);
+});
 </script>
 
 <!-- AUTH MODAL -->
@@ -1586,7 +1595,7 @@ async function doLogin(){
       </div>
 
       <div class="modal-actions" style="margin-top:14px;">
-        <button id="auth-login-btn" class="btn btn-primary" style="width:100%;">Entrar</button>
+        <button id="auth-login-btn" class="btn btn-primary" style="width:100%;" onclick="doLogin()">>Entrar</button>
       </div>
 
       <div id="auth-status" class="mini-status" style="margin-top:14px; display:none;"></div>
