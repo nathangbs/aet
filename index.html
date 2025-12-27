@@ -611,6 +611,26 @@
   margin-top: -4px !important;
 }
 
+
+/* ===== Microsoft Login Button ===== */
+.btn-ms{
+  background:#ffffff;
+  color:#1F2937;
+  border:1px solid #D1D5DB;
+  font-weight:800;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+}
+.btn-ms:hover{
+  background:#F9FAFB;
+}
+.ms-icon{
+  display:flex;
+  align-items:center;
+}
+
 </style>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -722,7 +742,7 @@
           </div>
 
           <div class="mini-status" style="margin-top:-6px; margin-bottom: 16px;">
-            <strong>Regra:</strong> não é permitido cadastrar a <strong>mesma placa</strong> duas vezes.
+            <strong>Regra:</strong> não é permitido  a <strong>mesma placa</strong> duas vezes.
           </div>
 
           <div id="truck-list"></div>
@@ -772,9 +792,19 @@
         Use sua conta corporativa Microsoft para acessar.
       </div>
 
-      <button id="auth-ms-btn" class="btn btn-primary" style="width:100%; margin-top:12px;">
-        Entrar com Microsoft
-      </button>
+      
+<button id="auth-ms-btn" class="btn btn-ms" style="width:100%; margin-top:14px;">
+  <span class="ms-icon">
+    <svg width="20" height="20" viewBox="0 0 23 23" xmlns="http://www.w3.org/2000/svg">
+      <rect x="1" y="1" width="10" height="10" fill="#F25022"/>
+      <rect x="12" y="1" width="10" height="10" fill="#7FBA00"/>
+      <rect x="1" y="12" width="10" height="10" fill="#00A4EF"/>
+      <rect x="12" y="12" width="10" height="10" fill="#FFB900"/>
+    </svg>
+  </span>
+  <span>Entrar com Microsoft</span>
+</button>
+
 
       <div class="hint" style="margin-top:12px; color:#64748B; font-weight:700; font-size:12px; text-align:center;">
         Acesso restrito a contas @grpotencial.com.br
@@ -1599,7 +1629,7 @@ async function doMicrosoftLogin() {
     </div>
     <div class="modal-body">
       <div class="mini-status" style="margin-top:0;">
-        Entre com seu e-mail e senha. Se for o primeiro acesso, clique em <strong>Criar conta</strong>.
+        Entre com seu e-mail e senha. Se for o primeiro acesso, clique em <strong></strong>.
       </div>
 
       <div style="display:grid; gap:10px; margin-top:14px;">
@@ -1607,7 +1637,7 @@ async function doMicrosoftLogin() {
 
       <div class="modal-actions" style="margin-top:14px;">
         <button id="auth-login-btn" class="btn btn-primary" style="flex:1;">Entrar</button>
-        <button id="auth-signup-btn" class="btn btn-gray" style="flex:1;">Criar conta</button>
+        <button id="auth-signup-btn" class="btn btn-gray" style="flex:1;"></button>
       </div>
 
       <div id="auth-status" class="mini-status" style="margin-top:14px; color:#374151;"></div>
