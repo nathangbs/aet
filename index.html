@@ -1203,7 +1203,7 @@
           var t = list[i3];
           var active = selectedTruck && selectedTruck.id === t.id;
 
-          html += '<button class="filter-btn ' + (active ? 'active' : '') + '" onclick="selectTruckFilter(' + t.id + ')">';
+          html += "<button class=\"filter-btn " + (active ? "active" : "") + "\" onclick=\"selectTruckFilter('" + t.id + "')\">";
           html += t.plate;
           html += '<span class="filter-sub">Empresa: ' + t.company + '</span>';
           html += '</button>';
