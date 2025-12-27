@@ -614,15 +614,10 @@
 </style>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script>
-  const supabase = window.supabase.createClient(
-    "https://nhvprvgxnlrfulztxcnk.supabase.co",
-"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5odnBydmd4bmxyZnVsenR4Y25rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3NjU0MjQsImV4cCI6MjA4MjM0MTQyNH0.al3zG6OkC5uLe4MLEZeTErmSty-N3yG9rKVDC7FIVWU"
-
-  );
+  // === Supabase init ===
+  window.supabaseClient = window.supabase.createClient("https://nhvprvgxnlrfulztxcnk.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5odnBydmd4bmxyZnVsenR4Y25rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3NjU0MjQsImV4cCI6MjA4MjM0MTQyNH0.al3zG6OkC5uLe4MLEZeTErmSty-N3yG9rKVDC7FIVWU");
 </script>
-
 </head>
 
 <body>
@@ -771,24 +766,17 @@
             </div>
 
             <div class="modal-body">
-      <div class="info-box">
-        Acesso restrito. Entre com seu e-mail e senha cadastrados no Supabase.
-      </div>
+              <div id="osrm-status" class="mini-status">
+                Clique em “Iniciar seleção” e marque Início e Fim.
+              </div>
 
-      <div class="form-row">
-        <input id="auth-email" type="email" placeholder="E-mail" autocomplete="username" />
-      </div>
-
-      <div class="form-row">
-        <input id="auth-password" type="password" placeholder="Senha" autocomplete="current-password" />
-      </div>
-
-      <div id="auth-status" class="mini-status" style="margin-top:12px; display:none;"></div>
-    </div>
+              <div id="osrm-modal-map"></div>
 
               <div class="modal-actions">
-      <button id="auth-login-btn" class="btn btn-primary" style="width:100%;">Entrar</button>
-    </div>
+                <button class="btn btn-dark" style="flex:1;" onclick="startOsrmSelection()">🎯 Iniciar seleção</button>
+                <button class="btn btn-gray" style="flex:1;" onclick="cancelOsrmSelection()">Cancelar</button>
+                <button class="btn btn-primary" style="flex:1;" onclick="fitTempOrLastRoute()">Enquadrar</button>
+              </div>
             </div>
           </div>
         </div>
@@ -1542,40 +1530,39 @@ function setAuthStatus(msg, isError){
   el.style.borderColor = isError ? "#FCA5A5" : "#93C5FD";
 }
 
-
-
-async function doLogin() {
-  try {
+async function doLogin(){
+  try{
     setAuthStatus("Entrando...", false);
-    const email = document.getElementById("auth-email")?.value?.trim();
-    const password = document.getElementById("auth-password")?.value;
-    if (!email || !password) {
+    const email = (document.getElementById("auth-email")?.value || "").trim();
+    const password = document.getElementById("auth-password")?.value || "";
+    if(!email || !password){
       setAuthStatus("Informe e-mail e senha.", true);
       return;
     }
-    const { error } = await window.window.supabaseClient.auth.signInWithPassword({ email, password });
-    if (error) throw error;
+    const supa = window.supabaseClient;
+    if(!supa) throw new Error("Supabase não inicializado.");
+    const { error } = await supa.auth.signInWithPassword({ email, password });
+    if(error) throw error;
     setAuthStatus("Login OK ✅", false);
-  } catch (e) {
+    // o onAuthStateChange do seu app deve fechar o modal; se não, fechamos aqui:
+    const modal = document.getElementById("auth-modal");
+    if(modal) modal.classList.remove("active");
+  }catch(e){
     setAuthStatus(e?.message || String(e), true);
   }
 }
 
-
-
-// --- Wire auth login button ---
-(function wireAuthButtons(){
-  const btnLogin = document.getElementById("auth-login-btn");
+(function wireAuthLogin(){
+  const btn = document.getElementById("auth-login-btn");
   const email = document.getElementById("auth-email");
   const pass = document.getElementById("auth-password");
-
-  if (btnLogin && !btnLogin.__wired){
-    btnLogin.__wired = true;
-    btnLogin.addEventListener("click", (e) => { e.preventDefault(); doLogin(); });
+  if(btn && !btn.__wired){
+    btn.__wired = true;
+    btn.addEventListener("click", (e)=>{ e.preventDefault(); doLogin(); });
   }
-  const onEnter = (e) => { if (e.key === "Enter") { e.preventDefault(); doLogin(); } };
-  if (email) email.addEventListener("keydown", onEnter);
-  if (pass) pass.addEventListener("keydown", onEnter);
+  const onEnter = (e)=>{ if(e.key==="Enter"){ e.preventDefault(); doLogin(); } };
+  if(email) email.addEventListener("keydown", onEnter);
+  if(pass) pass.addEventListener("keydown", onEnter);
 })();
 
 </script>
@@ -1590,7 +1577,7 @@ async function doLogin() {
     </div>
     <div class="modal-body">
       <div class="mini-status" style="margin-top:0;">
-        Entre com seu e-mail e senha. Se for o primeiro acesso, clique em <strong>Criar conta</strong>.
+        Acesso restrito. Entre com seu e-mail e senha cadastrados no Supabase.
       </div>
 
       <div style="display:grid; gap:10px; margin-top:14px;">
@@ -1599,14 +1586,13 @@ async function doLogin() {
       </div>
 
       <div class="modal-actions" style="margin-top:14px;">
-        <button id="auth-login-btn" class="btn btn-primary" style="flex:1;">Entrar</button>
-        <button >Criar conta</button>
+        <button id="auth-login-btn" class="btn btn-primary" style="width:100%;">Entrar</button>
       </div>
 
-      <div id="auth-status" class="mini-status" style="margin-top:14px; color:#374151;"></div>
+      <div id="auth-status" class="mini-status" style="margin-top:14px; display:none;"></div>
 
       <div class="mini-status" style="margin-top:14px;">
-        <strong>Importante:</strong> o Supabase pode exigir confirmação de e-mail no cadastro, dependendo da configuração do projeto.
+        <strong>Dica:</strong> caso não tenha acesso, solicite suas credenciais ao administrador.
       </div>
     </div>
   </div>
