@@ -1543,6 +1543,7 @@ async function doLogin(){
     if(!supa) throw new Error("Supabase não inicializado.");
     const { error } = await supa.auth.signInWithPassword({ email, password });
     if(error) throw error;
+    setAuthStatus("Logout ✅", false);
     // o onAuthStateChange do seu app deve fechar o modal; se não, fechamos aqui:
     const modal = document.getElementById("auth-modal");
     if(modal) modal.classList.remove("active");
