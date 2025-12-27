@@ -1944,6 +1944,38 @@ if(window.supabaseClient){
   });
 }
 
+
+
+// === Logout (force return to login) ===
+async function doLogout(){
+  try{
+    if(window.supabaseClient){
+      await window.supabaseClient.auth.signOut();
+    }
+  }catch(e){
+    console.warn("logout error", e);
+  }finally{
+    // Clear UI and force modal
+    try{ if(typeof setUserBadge === "function") setUserBadge(null); }catch(_){}
+    try{ if(typeof setAppEnabled === "function") setAppEnabled(false); }catch(_){}
+    try{
+      if(typeof showAuthModal === "function") showAuthModal(true);
+      else {
+        const m = document.getElementById("auth-modal");
+        if(m) m.classList.add("active");
+      }
+    }catch(_){}
+  }
+}
+
+document.addEventListener("DOMContentLoaded", ()=>{
+  const btn = document.getElementById("btn-logout");
+  if(btn && !btn.__wired){
+    btn.__wired = true;
+    btn.addEventListener("click", (e)=>{ e.preventDefault(); doLogout(); });
+  }
+});
+
 </script>
 
 <!-- AUTH MODAL -->
