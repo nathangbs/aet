@@ -1,0 +1,2330 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gerenciamento de AET</title>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    :root{
+      --brand: #2561C1;      /* azul do anexo */
+      --brand-dark: #1E4F9E; /* hover / tom escuro */
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #EFF6FF 0%, #E0E7FF 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+
+    /* ===== HEADER com LOGO ===== */
+    .header {
+      background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
+      color: white;
+      padding: 30px;
+    }
+    .header-top{
+      display:flex;
+      align-items:center;
+      gap:18px;
+    }
+    .header-logo{
+      width: 150px;        /* maior */
+      height: auto;
+      background: none;   /* sem fundo */
+      padding: 0;
+      border-radius: 0;
+      object-fit: contain;
+      filter: drop-shadow(0 6px 14px rgba(0,0,0,0.35));
+    }
+    .header h1 { font-size: 32px; margin-bottom: 8px; }
+
+    .tabs {
+      display: flex;
+      background: #F9FAFB;
+      border-bottom: 2px solid #E5E7EB;
+    }
+    .tab {
+      flex: 1;
+      padding: 20px;
+      background: none;
+      border: none;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #6B7280;
+      transition: all 0.3s;
+    }
+    .tab:hover { background: #F3F4F6; }
+    .tab.active {
+      background: white;
+      color: var(--brand);
+      border-bottom: 3px solid var(--brand);
+    }
+
+    .content { padding: 30px; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .map-section {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 20px;
+    }
+
+    /* Sidebar (conteúdo rolável + rodapé fixo) */
+    .sidebar {
+      background: linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%);
+      border-radius: 15px;
+      padding: 18px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+      height: 800px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .sidebar-scroll {
+      overflow-y: auto;
+      padding: 6px 6px 14px 6px;
+    }
+
+    .sidebar h2 {
+      font-size: 20px;
+      margin-bottom: 12px;
+      color: #1F2937;
+    }
+    .count-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: 8px;
+      background: #111827;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 900;
+      padding: 4px 10px;
+      border-radius: 999px;
+      vertical-align: middle;
+    }
+
+    .filter-btn {
+      width: 100%;
+      padding: 15px;
+      margin-bottom: 10px;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-align: left;
+      background: white;
+      color: #374151;
+    }
+    .filter-btn:hover { background: #EFF6FF; }
+    .filter-btn.active {
+      background: var(--brand);
+      color: white;
+      box-shadow: 0 4px 15px rgba(37, 97, 193, 0.30);
+    }
+    .filter-sub {
+      display: block;
+      font-weight: 700;
+      font-size: 12px;
+      opacity: 0.85;
+      margin-top: 4px;
+    }
+
+    /* Lista de placas (altura ~5 botões) */
+    .plate-list {
+      max-height: 320px;
+      overflow-y: auto;
+      padding-right: 6px;
+      margin-top: 8px;
+    }
+    .plate-list::-webkit-scrollbar { width: 10px; }
+    .plate-list::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 12px; }
+    .plate-list::-webkit-scrollbar-track { background: transparent; }
+
+    .legend {
+      border-top: 2px solid #E5E7EB;
+      padding-top: 16px;
+      margin-top: 16px;
+    }
+    .legend h3 {
+      font-size: 16px;
+      margin-bottom: 12px;
+      color: #1F2937;
+      font-weight: 900;
+    }
+    .legend-item {
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      border-left: 4px solid;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .legend-item:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 24px rgba(0,0,0,0.12);
+    }
+    .legend-item-name { font-weight: 900; color: #1F2937; margin-bottom: 5px; }
+    .legend-item-info { font-size: 14px; color: #6B7280; font-weight: 700; }
+
+    /* Lista de trechos (igual placas: rolagem própria) */
+    .route-list-scroll {
+      max-height: 260px;
+      overflow-y: auto;
+      padding-right: 6px;
+      margin-top: 8px;
+    }
+    .route-list-scroll::-webkit-scrollbar { width: 10px; }
+    .route-list-scroll::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 12px; }
+    .route-list-scroll::-webkit-scrollbar-track { background: transparent; }
+
+    /* Rodapé fixo do sidebar */
+    .sidebar-footer {
+      border-top: 2px solid #E5E7EB;
+      padding-top: 14px;
+      padding-bottom: 4px;
+      background: linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%);
+      position: sticky;
+      bottom: 0;
+    }
+
+    /* Map wrapper + badge (direita) */
+    .map-wrap {
+      position: relative;
+      width: 100%;
+      height: 800px;
+    }
+    #map {
+      width: 100%;
+      height: 800px;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .map-badge {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      left: auto;
+      z-index: 800;
+      background: rgba(17, 24, 39, 0.92);
+      color: #fff;
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-weight: 900;
+      font-size: 14px;
+      line-height: 1.1;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+      display: none;
+      max-width: min(420px, 70%);
+      text-align: right;
+    }
+    .map-badge small {
+      display:block;
+      margin-top:6px;
+      font-weight: 800;
+      opacity: .85;
+      font-size: 12px;
+    }
+
+    .input-group {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    input, select {
+      padding: 12px 15px;
+      border: 2px solid #E5E7EB;
+      border-radius: 10px;
+      font-size: 16px;
+      transition: all 0.3s;
+      background: #fff;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--brand);
+    }
+
+    .btn {
+      padding: 12px 25px;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 900;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .btn-primary { background: var(--brand); color: white; }
+    .btn-primary:hover {
+      background: var(--brand-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(37, 97, 193, 0.30);
+    }
+    .btn-danger { background: #EF4444; color: white; }
+    .btn-danger:hover { background: #DC2626; }
+
+    .btn-warn { background: #F59E0B; color: #fff; }
+    .btn-warn:hover { background: #D97706; }
+    .btn-gray { background: #6B7280; color: #fff; }
+    .btn-gray:hover { background: #4B5563; }
+    .btn-dark { background: #111827; color: #fff; }
+    .btn-dark:hover { background: #0B1220; }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 15px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      border-left: 4px solid;
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      margin-bottom: 15px;
+    }
+    .card-title {
+      font-size: 20px;
+      font-weight: 900;
+      color: #1F2937;
+    }
+    .card-subtitle {
+      color: #6B7280;
+      margin-top: 5px;
+      font-weight: 700;
+    }
+
+    .truck-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    .badge {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 900;
+      cursor: pointer;
+      transition: all 0.3s;
+      background: #E5E7EB;
+      color: #374151;
+    }
+    .badge:hover { background: #D1D5DB; }
+    .badge.active { background: #10B981; color: white; }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .section-box {
+      background: linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%);
+      padding: 30px;
+      border-radius: 15px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .list-item {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      gap: 10px;
+    }
+    .list-item:hover { box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .empty-state {
+      text-align: center;
+      padding: 30px 10px;
+      color: #9CA3AF;
+      font-style: italic;
+      font-weight: 700;
+    }
+    .mini-status {
+      background: #fff;
+      border: 1px solid #E5E7EB;
+      border-radius: 12px;
+      padding: 12px;
+      margin-top: 12px;
+      font-size: 14px;
+      color: #374151;
+      line-height: 1.35;
+      font-weight: 700;
+    }
+    .mini-status strong { color: #111827; }
+
+    /* ===== MODAIS ===== */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(17, 24, 39, 0.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 9999;
+    }
+    .modal-backdrop.active { display: flex; }
+    .modal {
+      width: min(1100px, 96vw);
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+      overflow: hidden;
+    }
+    .modal-header {
+      display:flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 18px;
+      background: #F9FAFB;
+      border-bottom: 1px solid #E5E7EB;
+    }
+    .modal-title {
+      font-size: 16px;
+      font-weight: 950;
+      color: #111827;
+    }
+    .modal-body { padding: 14px 18px 18px 18px; }
+
+    /* OSRM modal map */
+    #osrm-modal-map {
+      width: 100%;
+      height: 520px;
+      border-radius: 14px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .modal-actions {
+      display:flex;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    /* Popup simples (duplicidade de placa) */
+    .popup {
+      width: min(520px, 96vw);
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+      overflow: hidden;
+    }
+    .popup-body {
+      padding: 18px;
+      color: #111827;
+      font-weight: 800;
+      line-height: 1.35;
+    }
+    .popup-actions {
+      padding: 14px 18px 18px 18px;
+      display:flex;
+      justify-content: flex-end;
+      gap: 10px;
+      background: #F9FAFB;
+      border-top: 1px solid #E5E7EB;
+    }
+  
+.container {
+  transition: filter 0.3s ease, opacity 0.3s ease;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.modal-backdrop:not(.active) {
+  display: none;
+}
+
+
+/* ===== Auth modal (professional) ===== */
+#auth-modal .modal{
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 24px 70px rgba(0,0,0,0.28);
+}
+
+#auth-modal .auth-header{
+  padding: 18px 20px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border-bottom: 1px solid #E5E7EB;
+}
+
+#auth-modal .auth-logo{
+  width: 150px;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 18px rgba(0,0,0,0.18));
+}
+
+#auth-modal .auth-title{
+  font-size: 18px;
+  font-weight: 950;
+  color: #0F172A;
+  letter-spacing: -0.2px;
+}
+
+#auth-modal .auth-subtitle{
+  font-size: 12px;
+  font-weight: 900;
+  color: #64748B;
+  text-align: center;
+  line-height: 1.35;
+  margin-top: -4px;
+}
+
+#auth-modal .modal-body{
+  padding-top: 16px;
+}
+
+#auth-modal input{
+  border-radius: 12px;
+}
+
+#auth-modal .modal-actions button{
+  border-radius: 12px;
+}
+
+#auth-modal .mini-status{
+  border-radius: 12px;
+}
+
+
+/* ===== Login logo (official) ===== */
+#auth-modal .auth-logo{
+  width: 140px;
+  max-width: 100%;
+  height: auto;
+  margin-bottom: 4px;
+}
+
+
+/* ===== Brand palette + UI polish ===== */
+:root{
+  --brand-blue:#1D4ED8;   /* azul da marca (aprox.) */
+  --brand-blue-dark:#1E40AF;
+  --brand-green:#10B981;  /* verde da marca (aprox.) */
+}
+
+.btn.btn-primary{
+  background: var(--brand-blue) !important;
+  border: 1px solid rgba(0,0,0,0.06) !important;
+  box-shadow: 0 10px 24px rgba(29,78,216,0.20);
+}
+.btn.btn-primary:hover{
+  background: var(--brand-blue-dark) !important;
+}
+.btn.btn-primary:disabled{
+  opacity: .75;
+  cursor: not-allowed;
+}
+
+.btn.btn-gray:disabled{
+  opacity: .75;
+  cursor: not-allowed;
+}
+
+/* ===== Auth header spacing (compact) ===== */
+#auth-modal .auth-header{
+  padding: 16px 20px 14px 20px !important;
+  gap: 6px !important;
+}
+#auth-modal .auth-title{ margin-top: 2px !important; }
+#auth-modal .auth-subtitle{ margin-top: -2px !important; }
+
+/* ===== Spinner (login) ===== */
+.spinner{
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 2px solid rgba(255,255,255,0.55);
+  border-top-color: rgba(255,255,255,0.95);
+  display: inline-block;
+  animation: spin 0.85s linear infinite;
+  vertical-align: -3px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.btn-loading{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+
+/* ===== Ajuste fino DEFINITIVO: espaçamento do login ===== */
+#auth-modal .auth-header{
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+  gap: 4px !important;
+}
+
+#auth-modal .auth-logo{
+  margin-top: 0 !important;
+  margin-bottom: 2px !important;
+}
+
+#auth-modal .auth-title{
+  margin-top: 0 !important;
+}
+
+#auth-modal .auth-subtitle{
+  margin-top: -4px !important;
+}
+
+
+/* Selected legend item + route highlight */
+.legend-item.selected{
+  background: rgba(30,79,158,0.08);
+  box-shadow: inset 0 0 0 2px rgba(30,79,158,0.35);
+}
+
+
+/* ===== Roteirização ===== */
+@media (max-width: 900px){
+  #tab-roteirizacao .input-group{
+    grid-template-columns: 1fr !important;
+  }
+  #tab-roteirizacao .btn{
+    width: 100%;
+  }
+}
+
+</style>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // === Supabase init ===
+  window.supabaseClient = window.supabase.createClient("https://nhvprvgxnlrfulztxcnk.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5odnBydmd4bmxyZnVsenR4Y25rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3NjU0MjQsImV4cCI6MjA4MjM0MTQyNH0.al3zG6OkC5uLe4MLEZeTErmSty-N3yG9rKVDC7FIVWU");
+</script>
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <!-- ✅ LOGO + TÍTULO -->
+      <div class="header-top">
+        <img class="header-logo"
+          src="https://cdn-sites-assets.mziq.com/wp-content/uploads/sites/1475/2025/05/AnyConv.com__Camada_11-1.webp"
+          alt="Logo">
+        <div>
+          <h1>Gerenciamento de Autorização Especial de Trânsito</h1>
+          <p>Controle trechos autorizados por veículo</p>
+        <div style="margin-top:14px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">  <span style="background:rgba(255,255,255,0.18); padding:8px 12px; border-radius:999px; font-weight:900;">    👤 <span id="user-badge">Deslogado</span>  </span>  <button id="btn-logout" class="btn btn-dark" style="display:none;">Sair</button></div>
+</div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="showTab(event,'map')">🗺️ Mapa e Filtros</button>
+      <button class="tab" onclick="showTab(event,'roteirizacao')">🧭 Roteirização</button>
+      <button class="tab" onclick="showTab(event,'trucks')">🚛 Placas</button>
+      <button class="tab" onclick="showTab(event,'routes')">📍 Trechos</button>
+    </div>
+
+    <div class="content">
+      <!-- MAPA E FILTROS -->
+      <div id="tab-map" class="tab-content active">
+        <div class="map-section">
+          <div class="sidebar">
+            <div class="sidebar-scroll">
+              <h2>
+                🚛 Filtrar por Placa
+                <span class="count-pill">Placas: <span id="plates-count">0</span></span>
+              </h2>
+
+              <!-- Filtro por empresa -->
+              <div style="margin-bottom: 12px;">
+                <select id="company-filter" style="width:100%;" onchange="onCompanyFilterChange()">
+                  <option value="ALL">Todas as Empresas</option>
+                  <option value="POTENCIAL">POTENCIAL</option>
+                  <option value="BWT">BWT</option>
+                </select>
+              </div>
+
+              <!-- Busca rápida -->
+              <div style="margin-bottom: 10px;">
+                <input id="plate-search" type="text" placeholder="Buscar placa..." oninput="renderFilters()" style="width:100%;">
+              </div>
+
+              <!-- Botão "Todos" fora da lista rolável -->
+              <button id="btn-all-routes" class="filter-btn" onclick="selectTruckFilter(null)">
+                Todos os Trechos
+                <span class="filter-sub" id="all-routes-sub">Sem filtro de placa</span>
+              </button>
+
+              <!-- Lista rolável (plates) -->
+              <div id="filter-buttons" class="plate-list"></div>
+
+              <div class="legend">
+                <h3>
+                  Trechos Autorizados
+                  <span class="count-pill">Trechos: <span id="routes-count">0</span></span>
+                </h3>
+
+                <div class="route-list-scroll">
+                  <div id="legend-items"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="sidebar-footer">
+              <div style="display:flex; gap:10px;">
+                <button class="btn btn-primary" style="flex:1;" onclick="fitToFilteredRoutes()">🗺️ Enquadrar</button>
+                <button class="btn btn-gray" style="flex:1;" onclick="resetMapView()">Reset</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="map-wrap">
+            <div id="map"></div>
+            <div id="map-filter-badge" class="map-badge"></div>
+          </div>
+        </div>
+      </div>
+
+      
+      <!-- ROTEIRIZAÇÃO -->
+      <div id="tab-roteirizacao" class="tab-content">
+        <div class="section-box">
+          <h2 style="margin-bottom: 10px;">Roteirização</h2>
+          <div class="muted" style="margin-bottom: 14px;">
+            Selecione a placa e informe origem/destino para verificar se a rota cruza trechos cadastrados e se há necessidade de autorização.
+          </div>
+
+          <div class="input-group" style="grid-template-columns: 220px 1fr 1fr auto; align-items:end;">
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              <label style="font-size:12px; font-weight:800; color:#334155;">Placa</label>
+              <select id="rtz-plate"></select>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              <label style="font-size:12px; font-weight:800; color:#334155;">Origem (cidade/UF)</label>
+              <input id="rtz-origin" type="text" placeholder="Ex.: Uberlândia/MG" />
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              <label style="font-size:12px; font-weight:800; color:#334155;">Destino (cidade/UF)</label>
+              <input id="rtz-dest" type="text" placeholder="Ex.: São Paulo/SP" />
+            </div>
+
+            <button id="rtz-search" class="btn btn-primary" style="height:42px;">Buscar</button>
+          </div>
+
+          <div id="rtz-status" class="mini-status" style="margin-top:12px; display:none;"></div>
+
+          <div class="section-box" style="margin-top:14px;">
+            <div style="font-weight:900; margin-bottom:6px;">Resultado</div>
+            <div id="rtz-summary" class="muted">Informe os dados acima e clique em Buscar.</div>
+            <ul id="rtz-list" style="margin:10px 0 0; padding-left:18px;"></ul>
+          </div>
+
+          <div class="map-shell" style="margin-top:14px;">
+            <div id="rtz-map" style="height:520px; border-radius:14px; overflow:hidden;"></div>
+          </div>
+        </div>
+      </div>
+
+<!-- PLACAS -->
+      <div id="tab-trucks" class="tab-content">
+        <div class="section-box">
+          <h2 style="margin-bottom: 20px;">Gerenciar Placas</h2>
+
+          <!-- Cadastro com Empresa + Placa -->
+          <div class="input-group" style="grid-template-columns: 220px 1fr auto;">
+            <select id="new-truck-company">
+              <option value="POTENCIAL">POTENCIAL</option>
+              <option value="BWT">BWT</option>
+            </select>
+
+            <input type="text" id="new-truck" placeholder="Digite a placa (ex: ABC-1234)" />
+            <button class="btn btn-primary" onclick="addTruck()">➕ Adicionar</button>
+          </div>
+
+          <div class="mini-status" style="margin-top:-6px; margin-bottom: 16px;">
+            <strong>Regra:</strong> não é permitido cadastrar a <strong>mesma placa</strong> duas vezes.
+          </div>
+
+          <div id="truck-list"></div>
+        </div>
+      </div>
+
+      <!-- TRECHOS -->
+      <div id="tab-routes" class="tab-content">
+        <div class="section-box">
+          <h2 style="margin-bottom: 20px;">Novo Trecho</h2>
+
+          <!-- REMOVIDOS: Enquadrar e Cancelar seleção -->
+          <div style="display:flex; gap:10px; margin-bottom: 15px;">
+            <button class="btn btn-dark" style="flex:1;" onclick="openOsrmModal()">🎯 Selecionar no mapa</button>
+          </div>
+
+          <div class="form-grid">
+            <input type="text" id="route-name" placeholder="Nome do trecho" />
+            <select id="route-state"><option value="">Selecione o Estado</option></select>
+            <input type="text" id="route-highway" placeholder="Rodovia (ex: BR-101)" />
+            <input type="color" id="route-color" value="#3B82F6" />
+            <input type="text" id="route-start" placeholder="Início (opcional)" />
+            <input type="text" id="route-end" placeholder="Fim (opcional)" />
+          </div>
+
+          <button id="btn-save-route" class="btn btn-primary" onclick="saveRoute()" style="width: 100%;">➕ Adicionar Trecho</button>
+          <button id="btn-cancel-edit" class="btn btn-gray" onclick="cancelEdit()" style="width: 100%; margin-top: 10px; display:none;">↩ Cancelar Edição</button>
+
+          <div class="mini-status">
+            <strong>Dica:</strong> clique em <strong>Selecionar no mapa</strong>, marque <strong>Início</strong> e <strong>Fim</strong>.
+            O trecho ficará <strong>exato na rodovia</strong> e destacado.
+          </div>
+        </div>
+
+        <div style="margin-top: 30px;" id="route-list"></div>
+
+        <!-- MODAL DO MAPA (SELEÇÃO OSRM) -->
+        <div id="osrm-modal" class="modal-backdrop" onclick="closeOsrmModalOnBackdrop(event)">
+          <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+              <div class="modal-title">🗺️ Selecionar trecho exato na rodovia (OSRM)</div>
+              <button class="btn btn-gray" onclick="closeOsrmModal()">✖ Fechar</button>
+            </div>
+
+            <div class="modal-body">
+              <div id="osrm-status" class="mini-status">
+                Clique em “Iniciar seleção” e marque Início e Fim.
+              </div>
+
+              <div id="osrm-modal-map"></div>
+
+              <div class="modal-actions">
+                <button class="btn btn-dark" style="flex:1;" onclick="startOsrmSelection()">🎯 Iniciar seleção</button>
+                <button class="btn btn-gray" style="flex:1;" onclick="cancelOsrmSelection()">Cancelar</button>
+                <button class="btn btn-primary" style="flex:1;" onclick="fitTempOrLastRoute()">Enquadrar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- /MODAL -->
+      </div>
+    </div>
+  </div>
+
+  <!-- POPUP: PLACA DUPLICADA -->
+  <div id="dup-plate-modal" class="modal-backdrop" onclick="closeDupPlateOnBackdrop(event)">
+    <div class="popup" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title">⚠️ Placa já cadastrada</div>
+        <button class="btn btn-gray" onclick="closeDupPlateModal()">✖</button>
+      </div>
+      <div class="popup-body" id="dup-plate-text">
+        Essa placa já está cadastrada.
+      </div>
+      <div class="popup-actions">
+        <button class="btn btn-primary" onclick="closeDupPlateModal()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var states = {
+      'AC': [-9.0238, -70.812], 'AL': [-9.5713, -36.782], 'AM': [-3.4168, -65.856], 'AP': [0.9020, -52.003],
+      'BA': [-12.5797, -41.700], 'CE': [-5.4984, -39.320], 'DF': [-15.7939, -47.882], 'ES': [-19.1834, -40.308],
+      'GO': [-15.8270, -49.837], 'MA': [-4.9609, -45.274], 'MG': [-18.5122, -44.555], 'MS': [-20.7722, -54.785],
+      'MT': [-12.6819, -56.921], 'PA': [-1.9981, -54.930], 'PB': [-7.2399, -36.782], 'PE': [-8.8137, -36.954],
+      'PI': [-7.7183, -42.728], 'PR': [-24.8994, -51.430], 'RJ': [-22.2543, -42.652], 'RN': [-5.4026, -36.954],
+      'RO': [-10.8312, -63.341], 'RR': [2.7376, -62.073], 'RS': [-30.0346, -51.217], 'SC': [-27.2423, -50.218],
+      'SE': [-10.5741, -37.386], 'SP': [-22.1987, -48.638], 'TO': [-10.1753, -48.291]
+    };
+
+    // trucks: {id, plate, company}
+    var trucks = [];
+    var routes = [];
+    var selectedTruck = null;
+    var selectedCompany = "ALL";
+
+    // Map
+    var map = null;
+    var layers = [];
+
+    // routeId -> { line, markers: [m1,m2], base:{weight,opacity} }
+    var mapRouteLayers = {};
+
+    // Editing
+    var editingRouteId = null;
+
+    // OSRM / Modal
+    var osrmModalMap = null;
+    var osrmModalReady = false;
+
+    var osrmSelecting = false;
+    var osrmStage = 0;
+    var osrmStart = null;
+    var osrmEnd = null;
+
+    var osrmStartMarker = null;
+    var osrmEndMarker = null;
+    var osrmTempRouteLayer = null;
+
+    var pendingGeometry = null;
+    var pendingDistanceKm = null;
+
+    var OSRM_BASE = "https://router.project-osrm.org";
+
+    window.onload = function() {
+      map = L.map('map').setView([-14.2350, -51.9253], 4);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+      }).addTo(map);
+
+      // States dropdown
+      var sel = document.getElementById('route-state');
+      var stateKeys = Object.keys(states).sort();
+      for (var i = 0; i < stateKeys.length; i++) {
+        var opt = document.createElement('option');
+        opt.value = stateKeys[i];
+        opt.textContent = stateKeys[i];
+        sel.appendChild(opt);
+      }
+
+      renderAll();
+    };
+
+    function showTab(ev, name) {
+      var tabs = document.querySelectorAll('.tab');
+      var contents = document.querySelectorAll('.tab-content');
+      for (var i = 0; i < tabs.length; i++) tabs[i].classList.remove('active');
+      for (var i = 0; i < contents.length; i++) contents[i].classList.remove('active');
+
+      ev.currentTarget.classList.add('active');
+      document.getElementById('tab-' + name).classList.add('active');
+
+      if (name === 'map' && map) setTimeout(function(){ map.invalidateSize(); }, 150);
+    }
+
+    function resetMapView() {
+      map.setView([-14.2350, -51.9253], 4);
+    }
+
+    function fitToFilteredRoutes() {
+      var filtered = getFilteredRoutes();
+      var pts = [];
+      for (var i = 0; i < filtered.length; i++) {
+        if (filtered[i].geometry && filtered[i].geometry.length >= 2) pts = pts.concat(filtered[i].geometry);
+      }
+      if (pts.length >= 2) map.fitBounds(L.latLngBounds(pts), { padding: [50, 50] });
+      else resetMapView();
+    }
+
+    function onCompanyFilterChange() {
+      selectedCompany = document.getElementById('company-filter').value || "ALL";
+      if (selectedTruck && selectedCompany !== "ALL" && selectedTruck.company !== selectedCompany) {
+        selectedTruck = null;
+      }
+      renderAll();
+    }
+
+    // ===== Popup duplicidade =====
+    function openDupPlateModal(plate) {
+      document.getElementById('dup-plate-text').innerHTML =
+        'A placa <strong>' + plate + '</strong> já está cadastrada.<br><br>Clique em <strong>OK</strong> para voltar.';
+      document.getElementById('dup-plate-modal').classList.add('active');
+    }
+    function closeDupPlateModal() {
+      document.getElementById('dup-plate-modal').classList.remove('active');
+    }
+    function closeDupPlateOnBackdrop(ev) {
+      if (ev.target && ev.target.id === 'dup-plate-modal') closeDupPlateModal();
+    }
+
+    // ===== Trucks (empresa + sem duplicar placa) =====
+    function addTruck() {
+      var input = document.getElementById('new-truck');
+      var plate = input.value.trim().toUpperCase();
+      var company = (document.getElementById('new-truck-company').value || "POTENCIAL").toUpperCase();
+      if (!plate) return;
+
+      for (var i = 0; i < trucks.length; i++) {
+        if (trucks[i].plate === plate) {
+          openDupPlateModal(plate);
+          return;
+        }
+      }
+
+      trucks.push({ id: Date.now(), plate: plate, company: company });
+      input.value = '';
+      renderAll();
+    }
+
+    function removeTruck(id) {
+      var newTrucks = [];
+      for (var i = 0; i < trucks.length; i++) if (trucks[i].id !== id) newTrucks.push(trucks[i]);
+      trucks = newTrucks;
+
+      if (selectedTruck && selectedTruck.id === id) selectedTruck = null;
+
+      // remove permissões
+      for (var r = 0; r < routes.length; r++) {
+        var a = routes[r].allowedTrucks;
+        var na = [];
+        for (var j = 0; j < a.length; j++) if (a[j] !== id) na.push(a[j]);
+        routes[r].allowedTrucks = na;
+      }
+
+      renderAll();
+    }
+
+    // ===== Routes (add/edit) =====
+    function saveRoute() {
+      var name = document.getElementById('route-name').value.trim();
+      var state = document.getElementById('route-state').value;
+      var highway = document.getElementById('route-highway').value.trim();
+      var color = document.getElementById('route-color').value;
+      var startTxt = document.getElementById('route-start').value.trim();
+      var endTxt = document.getElementById('route-end').value.trim();
+      if (!name || !state || !highway) return;
+
+      if (editingRouteId) {
+        for (var i = 0; i < routes.length; i++) {
+          if (routes[i].id === editingRouteId) {
+            routes[i].name = name;
+            routes[i].state = state;
+            routes[i].highway = highway;
+            routes[i].color = color;
+            routes[i].start = startTxt;
+            routes[i].end = endTxt;
+
+            if (pendingGeometry && pendingGeometry.length >= 2) {
+              routes[i].geometry = pendingGeometry.slice();
+              routes[i].distanceKm = pendingDistanceKm;
+            }
+            break;
+          }
+        }
+      } else {
+        routes.push({
+          id: Date.now(),
+          name: name,
+          state: state,
+          highway: highway,
+          color: color,
+          start: startTxt,
+          end: endTxt,
+          allowedTrucks: [],
+          geometry: (pendingGeometry && pendingGeometry.length >= 2) ? pendingGeometry.slice() : null,
+          distanceKm: pendingDistanceKm
+        });
+      }
+
+      pendingGeometry = null;
+      pendingDistanceKm = null;
+      clearOsrmTemp();
+      clearRouteForm();
+      editingRouteId = null;
+      renderAll();
+    }
+
+    function editRoute(id) {
+      for (var i = 0; i < routes.length; i++) {
+        if (routes[i].id === id) {
+          var r = routes[i];
+          editingRouteId = id;
+
+          document.getElementById('route-name').value = r.name;
+          document.getElementById('route-state').value = r.state;
+          document.getElementById('route-highway').value = r.highway;
+          document.getElementById('route-color').value = r.color;
+          document.getElementById('route-start').value = r.start || '';
+          document.getElementById('route-end').value = r.end || '';
+
+          document.getElementById('btn-save-route').textContent = '💾 Salvar Alterações';
+          document.getElementById('btn-cancel-edit').style.display = 'block';
+
+          pendingGeometry = null;
+          pendingDistanceKm = null;
+          clearOsrmTemp();
+
+          renderAll();
+          break;
+        }
+      }
+    }
+
+    function cancelEdit() {
+      editingRouteId = null;
+      clearRouteForm();
+      pendingGeometry = null;
+      pendingDistanceKm = null;
+      clearOsrmTemp();
+      renderAll();
+    }
+
+    function deleteRoute(id) {
+      var newRoutes = [];
+      for (var i = 0; i < routes.length; i++) if (routes[i].id !== id) newRoutes.push(routes[i]);
+      routes = newRoutes;
+
+      if (editingRouteId === id) cancelEdit();
+      renderAll();
+    }
+
+    function clearRouteForm() {
+      document.getElementById('route-name').value = '';
+      document.getElementById('route-state').value = '';
+      document.getElementById('route-highway').value = '';
+      document.getElementById('route-start').value = '';
+      document.getElementById('route-end').value = '';
+
+      document.getElementById('btn-save-route').textContent = '➕ Adicionar Trecho';
+      document.getElementById('btn-cancel-edit').style.display = 'none';
+    }
+
+    // ===== Permissions =====
+    function toggleTruck(routeId, truckId) {
+      for (var i = 0; i < routes.length; i++) {
+        if (routes[i].id === routeId) {
+          var allowed = routes[i].allowedTrucks;
+          var idx = -1;
+          for (var j = 0; j < allowed.length; j++) if (allowed[j] === truckId) { idx = j; break; }
+          if (idx >= 0) allowed.splice(idx, 1);
+          else allowed.push(truckId);
+          break;
+        }
+      }
+      renderAll();
+    }
+
+    // ===== Filters =====
+    function selectTruckFilter(id) {
+      selectedTruck = null;
+      if (id !== null) {
+        for (var i = 0; i < trucks.length; i++) if (trucks[i].id === id) { selectedTruck = trucks[i]; break; }
+      }
+      renderAll();
+    }
+
+    function getTrucksByCompany(company) {
+      if (company === "ALL") return trucks.slice();
+      var arr = [];
+      for (var i = 0; i < trucks.length; i++) if (trucks[i].company === company) arr.push(trucks[i]);
+      return arr;
+    }
+
+    function getFilteredRoutes() {
+      if (selectedTruck) {
+        var filtered = [];
+        for (var i = 0; i < routes.length; i++) {
+          var allowed = routes[i].allowedTrucks;
+          for (var j = 0; j < allowed.length; j++) if (allowed[j] === selectedTruck.id) { filtered.push(routes[i]); break; }
+        }
+        return filtered;
+      }
+
+      if (selectedCompany !== "ALL") {
+        var trucksOfCompany = getTrucksByCompany(selectedCompany);
+        var setIds = {};
+        for (var t = 0; t < trucksOfCompany.length; t++) setIds[trucksOfCompany[t].id] = true;
+
+        var filtered2 = [];
+        for (var r = 0; r < routes.length; r++) {
+          var allowed2 = routes[r].allowedTrucks;
+          var ok = false;
+          for (var a = 0; a < allowed2.length; a++) if (setIds[allowed2[a]]) { ok = true; break; }
+          if (ok) filtered2.push(routes[r]);
+        }
+        return filtered2;
+      }
+
+      return routes;
+    }
+
+    function updateMapBadge() {
+      var badge = document.getElementById('map-filter-badge');
+
+      if (selectedTruck) {
+        badge.innerHTML = "Filtro: " + selectedTruck.plate + "<small>Empresa: " + selectedTruck.company + "</small>";
+        badge.style.display = "block";
+        return;
+      }
+      if (selectedCompany !== "ALL") {
+        badge.innerHTML = "Filtro: Empresa " + selectedCompany + "<small>Placa: (todas)</small>";
+        badge.style.display = "block";
+        return;
+      }
+      badge.style.display = "none";
+    }
+
+    function updateAllButtonActiveState() {
+      var btnAll = document.getElementById('btn-all-routes');
+      if (!btnAll) return;
+      btnAll.classList.toggle('active', !selectedTruck);
+    }
+
+    // ===== Hover highlight =====
+    function highlightRoute(routeId, on) {
+      var obj = mapRouteLayers[routeId];
+      if (!obj || !obj.line) return;
+
+      if (on) {
+        obj.line.setStyle({ weight: 10, opacity: 1.0 });
+        if (obj.line.bringToFront) obj.line.bringToFront();
+        if (obj.markers) {
+          for (var i = 0; i < obj.markers.length; i++) {
+            if (obj.markers[i] && obj.markers[i].bringToFront) obj.markers[i].bringToFront();
+          }
+        }
+      } else {
+        obj.line.setStyle({ weight: obj.base.weight, opacity: obj.base.opacity });
+      }
+    }
+
+    // ===== Render =====
+    function renderAll() {
+      renderFilters();
+      renderLegend();
+      renderMap();
+      renderTrucks();
+      renderRoutes();
+      updateMapBadge();
+      updateAllButtonActiveState();
+    }
+
+    function renderFilters() {
+      var q = (document.getElementById('plate-search') ? document.getElementById('plate-search').value : '')
+        .trim().toUpperCase();
+
+      var list = trucks.slice();
+      list.sort(function(a, b) {
+        if (a.plate < b.plate) return -1;
+        if (a.plate > b.plate) return 1;
+        return 0;
+      });
+
+      if (selectedCompany !== "ALL") {
+        var tmp = [];
+        for (var i = 0; i < list.length; i++) if (list[i].company === selectedCompany) tmp.push(list[i]);
+        list = tmp;
+      }
+
+      if (q) {
+        var tmp2 = [];
+        for (var i2 = 0; i2 < list.length; i2++) if (list[i2].plate.indexOf(q) !== -1) tmp2.push(list[i2]);
+        list = tmp2;
+      }
+
+      document.getElementById('plates-count').textContent = String(list.length);
+
+      var allSub = document.getElementById('all-routes-sub');
+      if (allSub) {
+        if (selectedTruck) allSub.textContent = "Empresa: " + selectedTruck.company + " • Placa: " + selectedTruck.plate;
+        else allSub.textContent = (selectedCompany === "ALL") ? "Sem filtro de placa" : ("Empresa: " + selectedCompany + " • Placa: todas");
+      }
+
+      var html = '';
+      if (list.length === 0) {
+        html = '<p class="empty-state" style="padding:16px;">Nenhuma placa encontrada</p>';
+      } else {
+        for (var i3 = 0; i3 < list.length; i3++) {
+          var t = list[i3];
+          var active = selectedTruck && selectedTruck.id === t.id;
+
+          html += "<button class=\"filter-btn " + (active ? "active" : "") + "\" onclick=\"selectTruckFilter('" + t.id + "')\">";
+          html += t.plate;
+          html += '<span class="filter-sub">Empresa: ' + t.company + '</span>';
+          html += '</button>';
+        }
+      }
+      document.getElementById('filter-buttons').innerHTML = html;
+    }
+
+    function renderLegend() {
+      var filtered = getFilteredRoutes();
+      document.getElementById('routes-count').textContent = String(filtered.length);
+
+      var html = '';
+      if (filtered.length === 0) {
+        html = '<p class="empty-state">Nenhum trecho encontrado</p>';
+      } else {
+        for (var i = 0; i < filtered.length; i++) {
+          var r = filtered[i];
+          var extra = (r.distanceKm != null) ? (' • ' + r.distanceKm.toFixed(1) + ' km') : '';
+          html += '<div class="legend-item" data-route-id="' + r.id + '" style="border-left-color: ' + r.color + ';">';
+          html +=   '<div class="legend-item-name">' + r.name + '</div>';
+          html +=   '<div class="legend-item-info">' + r.highway + ' - ' + r.state + extra + '</div>';
+          if (r.start && r.end) html += '<div class="legend-item-info">' + r.start + ' → ' + r.end + '</div>';
+          html += '</div>';
+        }
+      }
+      document.getElementById('legend-items').innerHTML = html;
+
+      var items = document.querySelectorAll('#legend-items .legend-item');
+      for (var j = 0; j < items.length; j++) {
+        (function(el){
+          var id = el.getAttribute('data-route-id');
+          el.addEventListener('mouseenter', function(){ highlightRoute(id, true); });
+          el.addEventListener('mouseleave', function(){ highlightRoute(id, false); });
+          el.addEventListener('click', function(){
+            // keep selection highlight
+            if (window.__selectedLegendRouteId && window.__selectedLegendRouteId !== id) {
+              highlightRoute(window.__selectedLegendRouteId, false);
+              // remove selected class from previous
+              var prev = document.querySelector('.legend-item.selected[data-route-id="' + window.__selectedLegendRouteId + '"]');
+              if (prev) prev.classList.remove('selected');
+            }
+            window.__selectedLegendRouteId = id;
+            el.classList.add('selected');
+            highlightRoute(id, true);
+
+            var rr = getRouteById(id);
+            if (rr && rr.geometry && rr.geometry.length >= 2) {
+              map.fitBounds(L.latLngBounds(rr.geometry), { padding: [50, 50] });
+            }
+          });
+        })(items[j]);
+      }
+    }
+
+    function renderMap() {
+      for (var i = 0; i < layers.length; i++) map.removeLayer(layers[i]);
+      layers = [];
+      mapRouteLayers = {};
+
+      var filtered = getFilteredRoutes();
+      if (filtered.length === 0) { resetMapView(); return; }
+
+      var boundsPts = [];
+      for (var i2 = 0; i2 < filtered.length; i2++) {
+        var r = filtered[i2];
+
+        if (r.geometry && r.geometry.length >= 2) {
+          var baseStyle = { weight: 6, opacity: 0.85 };
+
+          var line = L.polyline(r.geometry, { color: r.color, weight: baseStyle.weight, opacity: baseStyle.opacity }).addTo(map);
+          layers.push(line);
+
+          var m1 = L.circleMarker(r.geometry[0], { radius: 7, fillColor: r.color, color: '#fff', weight: 2, fillOpacity: 1 }).addTo(map);
+          var m2 = L.circleMarker(r.geometry[r.geometry.length - 1], { radius: 7, fillColor: r.color, color: '#fff', weight: 2, fillOpacity: 1 }).addTo(map);
+          layers.push(m1); layers.push(m2);
+
+          mapRouteLayers[r.id] = { line: line, markers: [m1,m2], base: baseStyle };
+
+          for (var b = 0; b < r.geometry.length; b++) boundsPts.push(r.geometry[b]);
+
+          var popup = '<div><h3 style="color:' + r.color + '; margin:0 0 6px 0;">' + r.name + '</h3><p style="margin:0;">' + r.highway + ' - ' + r.state + '</p>';
+          if (r.start && r.end) popup += '<p style="margin:6px 0 0 0;">' + r.start + ' → ' + r.end + '</p>';
+          if (r.distanceKm != null) popup += '<p style="margin:6px 0 0 0;"><strong>' + r.distanceKm.toFixed(1) + ' km</strong></p>';
+          popup += '</div>';
+          line.bindPopup(popup);
+
+          line.on('mouseover', (function(id){ return function(){ highlightRoute(id, true); }; })(r.id));
+          line.on('mouseout',  (function(id){ return function(){ highlightRoute(id, false); }; })(r.id));
+        } else {
+          var coord = states[r.state];
+          if (!coord) continue;
+
+          var start = [coord[0] - 0.8, coord[1] - 0.8];
+          var end = [coord[0] + 0.8, coord[1] + 0.8];
+          boundsPts.push(start, end);
+
+          var line2 = L.polyline([start, end], { color: r.color, weight: 6, opacity: 0.8 }).addTo(map);
+          layers.push(line2);
+
+          mapRouteLayers[r.id] = { line: line2, markers: [], base: { weight: 6, opacity: 0.8 } };
+
+          line2.on('mouseover', (function(id){ return function(){ highlightRoute(id, true); }; })(r.id));
+          line2.on('mouseout',  (function(id){ return function(){ highlightRoute(id, false); }; })(r.id));
+        }
+      }
+
+      if (boundsPts.length > 0) map.fitBounds(L.latLngBounds(boundsPts), { padding: [50, 50] });
+    }
+
+    function renderTrucks() {
+      var html = '';
+      if (trucks.length === 0) {
+        html = '<p class="empty-state">Nenhuma placa cadastrada</p>';
+      } else {
+        var list = trucks.slice();
+        list.sort(function(a,b){ return (a.plate < b.plate) ? -1 : (a.plate > b.plate) ? 1 : 0; });
+
+        for (var i = 0; i < list.length; i++) {
+          html += '<div class="list-item">';
+          html +=   '<div>';
+          html +=     '<div style="font-size:18px;font-weight:950; color:#111827;">' + list[i].plate + '</div>';
+          html +=     '<div style="font-size:12px; font-weight:900; color:#6B7280; margin-top:4px;">Empresa: ' + list[i].company + '</div>';
+          html +=   '</div>';
+          html += "<button class=\"btn btn-danger\" onclick=\"removeTruck('" + list[i].id + "')\">🗑️ Remover</button>";
+          html += '</div>';
+        }
+      }
+      document.getElementById('truck-list').innerHTML = html;
+    }
+
+    function renderRoutes() {
+      var html = '';
+      if (routes.length === 0) {
+        html = '<p class="empty-state">Nenhum trecho cadastrado</p>';
+      } else {
+        for (var i = 0; i < routes.length; i++) {
+          var r = routes[i];
+          html += '<div class="card" style="border-left-color:' + r.color + '"><div class="card-header"><div>';
+          html += '<div class="card-title">' + r.name + '</div>';
+
+          var dist = (r.distanceKm != null) ? (' • ' + r.distanceKm.toFixed(1) + ' km') : '';
+          html += '<div class="card-subtitle">' + r.highway + ' - ' + r.state + dist + '</div>';
+
+          if (r.start && r.end) html += '<div class="card-subtitle">' + r.start + ' → ' + r.end + '</div>';
+
+          var geoOk = (r.geometry && r.geometry.length >= 2) ? '✅ Traçado real' : '⚠ Sem traçado (use “Selecionar no mapa”)';
+          html += '<div class="card-subtitle" style="margin-top:8px;"><strong>' + geoOk + '</strong></div>';
+
+          html += '</div><div style="display:flex; gap:10px;">';
+          html += "<button class=\"btn btn-warn\" onclick=\"editRoute('" + r.id + "')\">✏️</button>";
+          html += "<button class=\"btn btn-danger\" onclick=\"deleteRoute('" + r.id + "')\">🗑️</button>";
+          html += '</div></div>';
+
+          html += '<div><strong>Placas Autorizadas:</strong><div class="truck-badges">';
+          for (var j = 0; j < trucks.length; j++) {
+            var hasPermission = false;
+            for (var k = 0; k < r.allowedTrucks.length; k++) if (r.allowedTrucks[k] === trucks[j].id) { hasPermission = true; break; }
+            html += "<span class=\"badge " + (hasPermission ? "active" : "") + "\" onclick=\"toggleTruck('" + r.id + "','" + trucks[j].id + "')\">";
+            html += trucks[j].plate + '</span>';
+          }
+          html += '</div></div></div>';
+        }
+      }
+      document.getElementById('route-list').innerHTML = html;
+    }
+
+    // ===== Modal / OSRM =====
+    function openOsrmModal() {
+      var modal = document.getElementById('osrm-modal');
+      modal.classList.add('active');
+
+      if (!osrmModalReady) {
+        osrmModalMap = L.map('osrm-modal-map').setView([-14.2350, -51.9253], 4);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap'
+        }).addTo(osrmModalMap);
+
+        osrmModalMap.on('click', function(e) {
+          if (!osrmSelecting) return;
+          if (osrmStage === 0) setOsrmStart(e.latlng);
+          else if (osrmStage === 1) { setOsrmEnd(e.latlng); fetchOsrmRoute(osrmStart, osrmEnd); }
+        });
+
+        osrmModalReady = true;
+      }
+
+      setTimeout(function() {
+        osrmModalMap.invalidateSize();
+
+        if (editingRouteId) {
+          var r = getRouteById(editingRouteId);
+          if (r && r.geometry && r.geometry.length >= 2) {
+            drawTempRoute(r.geometry, r.color);
+            fitCoords(r.geometry);
+            setOsrmStatus("Edição ativa: clique em <strong>Iniciar seleção</strong> para marcar novo Início/Fim e substituir o traçado.");
+          } else {
+            setOsrmStatus("Clique em <strong>Iniciar seleção</strong> e marque Início e Fim.");
+          }
+        } else if (pendingGeometry && pendingGeometry.length >= 2) {
+          drawTempRoute(pendingGeometry, document.getElementById('route-color').value || '#3B82F6');
+          fitCoords(pendingGeometry);
+          setOsrmStatus("Trecho já calculado. Você pode clicar em <strong>Adicionar / Salvar</strong>.");
+        } else {
+          setOsrmStatus("Clique em <strong>Iniciar seleção</strong> e marque Início e Fim.");
+          osrmModalMap.setView([-14.2350, -51.9253], 4);
+        }
+      }, 150);
+    }
+
+    function closeOsrmModal() { document.getElementById('osrm-modal').classList.remove('active'); }
+    function closeOsrmModalOnBackdrop(ev) { if (ev.target && ev.target.id === 'osrm-modal') closeOsrmModal(); }
+    function setOsrmStatus(html) { document.getElementById('osrm-status').innerHTML = html; }
+
+    function startOsrmSelection() {
+      osrmSelecting = true; osrmStage = 0; osrmStart = null; osrmEnd = null;
+      pendingGeometry = null; pendingDistanceKm = null;
+      clearOsrmTemp();
+      setOsrmStatus("Seleção ativa: clique no mapa para marcar o <strong>INÍCIO</strong> do trecho.");
+    }
+
+    function cancelOsrmSelection() {
+      osrmSelecting = false; osrmStage = 0; osrmStart = null; osrmEnd = null;
+      pendingGeometry = null; pendingDistanceKm = null;
+      clearOsrmTemp();
+      setOsrmStatus("Seleção cancelada.");
+    }
+
+    function setOsrmStart(latlng) {
+      osrmStart = latlng; osrmStage = 1;
+      if (osrmStartMarker) osrmModalMap.removeLayer(osrmStartMarker);
+      osrmStartMarker = L.circleMarker(latlng, { radius: 9, fillColor: "#10B981", color: "#fff", weight: 2, fillOpacity: 1 })
+        .addTo(osrmModalMap).bindPopup("Início");
+      setOsrmStatus("Início marcado. Agora clique no mapa para marcar o <strong>FIM</strong>.");
+    }
+
+    function setOsrmEnd(latlng) {
+      osrmEnd = latlng;
+      if (osrmEndMarker) osrmModalMap.removeLayer(osrmEndMarker);
+      osrmEndMarker = L.circleMarker(latlng, { radius: 9, fillColor: "#EF4444", color: "#fff", weight: 2, fillOpacity: 1 })
+        .addTo(osrmModalMap).bindPopup("Fim");
+      setOsrmStatus("Fim marcado. Calculando rota pela rodovia (OSRM)...");
+    }
+
+    function clearOsrmTemp() {
+      if (!osrmModalReady) return;
+      if (osrmStartMarker) { osrmModalMap.removeLayer(osrmStartMarker); osrmStartMarker = null; }
+      if (osrmEndMarker) { osrmModalMap.removeLayer(osrmEndMarker); osrmEndMarker = null; }
+      if (osrmTempRouteLayer) { osrmModalMap.removeLayer(osrmTempRouteLayer); osrmTempRouteLayer = null; }
+    }
+
+    function drawTempRoute(latlngs, color) {
+      if (!osrmModalReady) return;
+      if (osrmTempRouteLayer) osrmModalMap.removeLayer(osrmTempRouteLayer);
+      osrmTempRouteLayer = L.polyline(latlngs, { color: color, weight: 8, opacity: 0.9 }).addTo(osrmModalMap);
+      osrmTempRouteLayer.bindPopup("Trecho selecionado (preview)");
+    }
+
+    function fitCoords(coords) {
+      if (!osrmModalReady) return;
+      osrmModalMap.fitBounds(L.latLngBounds(coords), { padding: [50, 50] });
+    }
+
+    function fitTempOrLastRoute() {
+      var modalOpen = document.getElementById('osrm-modal').classList.contains('active');
+
+      if (modalOpen && osrmModalReady) {
+        if (pendingGeometry && pendingGeometry.length >= 2) { fitCoords(pendingGeometry); return; }
+        if (editingRouteId) {
+          var r = getRouteById(editingRouteId);
+          if (r && r.geometry && r.geometry.length >= 2) { fitCoords(r.geometry); return; }
+        }
+        osrmModalMap.setView([-14.2350, -51.9253], 4);
+        return;
+      }
+      fitToFilteredRoutes();
+    }
+
+    function getRouteById(id) {
+      for (var i = 0; i < routes.length; i++) if (routes[i].id === id) return routes[i];
+      return null;
+    }
+
+    async function fetchOsrmRoute(startLatLng, endLatLng) {
+      try {
+        var start = startLatLng.lng + "," + startLatLng.lat;
+        var end = endLatLng.lng + "," + endLatLng.lat;
+
+        var url = OSRM_BASE + "/route/v1/driving/" + start + ";" + end + "?geometries=geojson&overview=full&steps=false";
+        var res = await fetch(url);
+        if (!res.ok) throw new Error("OSRM HTTP " + res.status);
+
+        var data = await res.json();
+        if (!data || !data.routes || !data.routes[0] || !data.routes[0].geometry) throw new Error("Resposta OSRM inválida");
+
+        var geom = data.routes[0].geometry;
+        var coords = geom.coordinates;
+        if (!coords || coords.length < 2) throw new Error("Geometria curta");
+
+        var latlngs = [];
+        for (var i = 0; i < coords.length; i++) latlngs.push([coords[i][1], coords[i][0]]);
+
+        pendingGeometry = latlngs;
+        pendingDistanceKm = (data.routes[0].distance != null) ? (data.routes[0].distance / 1000.0) : null;
+
+        var c = document.getElementById('route-color').value || '#3B82F6';
+        drawTempRoute(latlngs, c);
+        fitCoords(latlngs);
+
+        osrmSelecting = false;
+        osrmStage = 0;
+
+        var distTxt = (pendingDistanceKm != null) ? ("<br><strong>Distância:</strong> " + pendingDistanceKm.toFixed(1) + " km") : "";
+        setOsrmStatus("Trecho calculado e destacado ✅" + distTxt + "<br>Agora feche o popup e clique em <strong>Adicionar / Salvar</strong>.");
+
+      } catch (err) {
+        setOsrmStatus("Falha ao calcular rota (OSRM). Verifique internet. Erro: <strong>" + (err.message || err) + "</strong>");
+        osrmSelecting = false;
+        osrmStage = 0;
+      }
+    }
+
+  
+
+function setAuthStatus(msg, isError){
+  const el = document.getElementById("auth-status");
+  if (!el) return;
+  if (!msg){
+    el.style.display = "none";
+    el.textContent = "";
+    return;
+  }
+  el.style.display = "block";
+  el.textContent = msg;
+  el.style.borderColor = isError ? "#FCA5A5" : "#93C5FD";
+}
+
+async function doLogin(){
+  try{
+    setAuthStatus("Entrando...", false);
+    const email = (document.getElementById("auth-email")?.value || "").trim();
+    const password = document.getElementById("auth-password")?.value || "";
+    if(!email || !password){
+      setAuthStatus("Informe e-mail e senha.", true);
+      return;
+    }
+    const supa = window.supabaseClient;
+    if(!supa) throw new Error("Supabase não inicializado.");
+    const { error } = await supa.auth.signInWithPassword({ email, password });
+    if(error) throw error;
+    setAuthStatus("Login OK ✅", false);
+    // o onAuthStateChange do seu app deve fechar o modal; se não, fechamos aqui:
+    const modal = document.getElementById("auth-modal");
+    if(modal) modal.classList.remove("active");
+  }catch(e){
+    setAuthStatus(e?.message || String(e), true);
+  }
+}
+
+
+function wireAuthLogin(){
+  const btn = document.getElementById("auth-login-btn");
+  const email = document.getElementById("auth-email");
+  const pass = document.getElementById("auth-password");
+
+  if(btn && !btn.__wired){
+    btn.__wired = true;
+    btn.addEventListener("click", (e)=>{ e.preventDefault(); doLogin(); });
+  }
+
+  const onEnter = (e)=>{ if(e.key==="Enter"){ e.preventDefault(); doLogin(); } };
+  if(email && !email.__wiredEnter){ email.__wiredEnter = true; email.addEventListener("keydown", onEnter); }
+  if(pass && !pass.__wiredEnter){ pass.__wiredEnter = true; pass.addEventListener("keydown", onEnter); }
+}
+
+// Wire after DOM is ready, and also retry shortly in case modal is injected later
+document.addEventListener("DOMContentLoaded", () => {
+  wireAuthLogin();
+  setTimeout(wireAuthLogin, 250);
+  setTimeout(wireAuthLogin, 1000);
+});
+
+
+/* =======================
+   Supabase persistence
+   Tables expected:
+   - aet_trucks (id uuid, user_id uuid, plate text, company text)
+   - aet_routes (id uuid, user_id uuid, name text, state text, highway text, color text, start text, end text, geometry jsonb, distance_km numeric)
+   - aet_route_trucks (id uuid, user_id uuid, route_id uuid, truck_id uuid)
+   ======================= */
+
+async function _requireUser(){
+  const supa = window.supabaseClient;
+  if(!supa) return null;
+  const { data } = await supa.auth.getSession();
+  return data?.session?.user || null;
+}
+
+async function loadFromSupabase(){
+  const user = await _requireUser();
+  if(!user){
+    // logged out
+    trucks = [];
+    routes = [];
+    selectedTruck = null;
+    selectedCompany = "ALL";
+    renderAll();
+    return;
+  }
+
+  const supa = window.supabaseClient;
+
+  // 1) Trucks
+  const { data: tdata, error: terr } = await supa
+    .from("aet_trucks")
+    .select("id, plate, company")
+    .order("created_at", { ascending: true });
+  if(terr){ console.error("load trucks", terr); }
+
+  // 2) Routes
+  const { data: rdata, error: rerr } = await supa
+    .from("aet_routes")
+    .select("id, name, state, highway, color, start, end, geometry, distance_km")
+    .order("created_at", { ascending: true });
+  if(rerr){ console.error("load routes", rerr); }
+
+  // 3) Join (allowed trucks)
+  const { data: jdata, error: jerr } = await supa
+    .from("aet_route_trucks")
+    .select("route_id, truck_id");
+  if(jerr){ console.error("load route_trucks", jerr); }
+
+  const joinMap = {};
+  (jdata || []).forEach(row => {
+    if(!joinMap[row.route_id]) joinMap[row.route_id] = [];
+    joinMap[row.route_id].push(row.truck_id);
+  });
+
+  trucks = (tdata || []).map(t => ({ id: t.id, plate: t.plate, company: (t.company || "POTENCIAL").toUpperCase() }));
+  routes = (rdata || []).map(r => ({
+    id: r.id,
+    name: r.name,
+    state: r.state,
+    highway: r.highway,
+    color: r.color,
+    start: r.start || "",
+    end: r.end || "",
+    allowedTrucks: joinMap[r.id] || [],
+    geometry: r.geometry || null,
+    distanceKm: r.distance_km || null
+  }));
+
+  // keep selection coherent
+  if(selectedTruck){
+    const still = trucks.find(t=>t.id===selectedTruck.id);
+    selectedTruck = still || null;
+  }
+
+  renderAll();
+}
+
+async function persistTruckInsert(truck){
+  const user = await _requireUser();
+  if(!user) return;
+  const supa = window.supabaseClient;
+  const { error } = await supa.from("aet_trucks").insert({
+    id: truck.id,
+    user_id: user.id,
+    plate: truck.plate,
+    company: truck.company
+  });
+  if(error){ console.error("insert truck", error); }
+}
+
+async function persistTruckDelete(truckId){
+  const user = await _requireUser();
+  if(!user) return;
+  const supa = window.supabaseClient;
+  const { error } = await supa.from("aet_trucks").delete().eq("id", truckId);
+  if(error){ console.error("delete truck", error); }
+}
+
+async function persistRouteUpsert(route){
+  const user = await _requireUser();
+  if(!user) return;
+  const supa = window.supabaseClient;
+  const payload = {
+    id: route.id,
+    user_id: user.id,
+    name: route.name,
+    state: route.state,
+    highway: route.highway,
+    color: route.color,
+    start: route.start || "",
+    end: route.end || "",
+    geometry: route.geometry || null,
+    distance_km: route.distanceKm || null
+  };
+  const { error } = await supa.from("aet_routes").upsert(payload, { onConflict: "id" });
+  if(error){ console.error("upsert route", error); }
+}
+
+async function persistRouteDelete(routeId){
+  const user = await _requireUser();
+  if(!user) return;
+  const supa = window.supabaseClient;
+  const { error } = await supa.from("aet_routes").delete().eq("id", routeId);
+  if(error){ console.error("delete route", error); }
+}
+
+async function persistLink(routeId, truckId, shouldLink){
+  const user = await _requireUser();
+  if(!user) return;
+  const supa = window.supabaseClient;
+  if(shouldLink){
+    const { error } = await supa.from("aet_route_trucks").insert({
+      user_id: user.id,
+      route_id: routeId,
+      truck_id: truckId
+    });
+    if(error && String(error.code) !== "23505"){ // ignore duplicate
+      console.error("link insert", error);
+    }
+  }else{
+    const { error } = await supa.from("aet_route_trucks")
+      .delete()
+      .eq("route_id", routeId)
+      .eq("truck_id", truckId);
+    if(error){ console.error("link delete", error); }
+  }
+}
+
+/* -------- Override core mutators to persist -------- */
+
+function addTruck(){
+  var input = document.getElementById('new-truck');
+  var plate = (input?.value || "").trim().toUpperCase();
+  var company = (document.getElementById('new-truck-company')?.value || "POTENCIAL").toUpperCase();
+  if (!plate) return;
+
+  for (var i = 0; i < trucks.length; i++) {
+    if (trucks[i].plate === plate) {
+      openDupPlateModal(plate);
+      return;
+    }
+  }
+
+  var id = (crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now());
+  var truck = { id: id, plate: plate, company: company };
+  trucks.push(truck);
+  if(input) input.value = '';
+  renderAll();
+  persistTruckInsert(truck);
+}
+
+function removeTruck(id){
+  // remove from local
+  var newTrucks = [];
+  for (var i = 0; i < trucks.length; i++) if (trucks[i].id !== id) newTrucks.push(trucks[i]);
+  trucks = newTrucks;
+
+  if (selectedTruck && selectedTruck.id === id) selectedTruck = null;
+
+  // also remove from routes allowedTrucks
+  for (var r = 0; r < routes.length; r++){
+    var keep = [];
+    for (var j = 0; j < (routes[r].allowedTrucks || []).length; j++){
+      if (routes[r].allowedTrucks[j] !== id) keep.push(routes[r].allowedTrucks[j]);
+    }
+    routes[r].allowedTrucks = keep;
+  }
+
+  renderAll();
+  persistTruckDelete(id);
+}
+
+function saveRoute(){
+  var name = document.getElementById('route-name').value.trim();
+  var state = document.getElementById('route-state').value;
+  var highway = document.getElementById('route-highway').value.trim();
+  var color = document.getElementById('route-color').value;
+  var startTxt = document.getElementById('route-start').value.trim();
+  var endTxt = document.getElementById('route-end').value.trim();
+  if (!name || !state || !highway) return;
+
+  var route = null;
+
+  if (editingRouteId) {
+    for (var i = 0; i < routes.length; i++) {
+      if (routes[i].id === editingRouteId) {
+        routes[i].name = name;
+        routes[i].state = state;
+        routes[i].highway = highway;
+        routes[i].color = color;
+        routes[i].start = startTxt;
+        routes[i].end = endTxt;
+
+        if (pendingGeometry && pendingGeometry.length >= 2) {
+          routes[i].geometry = pendingGeometry.slice();
+          routes[i].distanceKm = pendingDistanceKm;
+        }
+        route = routes[i];
+        break;
+      }
+    }
+  } else {
+    var id = (crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now());
+    route = {
+      id: id,
+      name: name,
+      state: state,
+      highway: highway,
+      color: color,
+      start: startTxt,
+      end: endTxt,
+      allowedTrucks: [],
+      geometry: (pendingGeometry && pendingGeometry.length >= 2) ? pendingGeometry.slice() : null,
+      distanceKm: pendingDistanceKm
+    };
+    routes.push(route);
+  }
+
+  pendingGeometry = null;
+  pendingDistanceKm = null;
+  clearOsrmTemp();
+  clearRouteForm();
+  editingRouteId = null;
+  renderAll();
+
+  if(route) persistRouteUpsert(route);
+}
+
+function deleteRoute(id){
+  // local delete
+  var newRoutes = [];
+  for (var i = 0; i < routes.length; i++) if (routes[i].id !== id) newRoutes.push(routes[i]);
+  routes = newRoutes;
+  renderAll();
+  persistRouteDelete(id);
+}
+
+function toggleTruck(routeId, truckId){
+  for (var i = 0; i < routes.length; i++) {
+    if (routes[i].id === routeId) {
+      var list = routes[i].allowedTrucks || [];
+      var idx = list.indexOf(truckId);
+      var shouldLink = false;
+      if (idx >= 0) {
+        list.splice(idx, 1);
+        shouldLink = false;
+      } else {
+        list.push(truckId);
+        shouldLink = true;
+      }
+      routes[i].allowedTrucks = list;
+      renderAll();
+      persistLink(routeId, truckId, shouldLink);
+      return;
+    }
+  }
+}
+
+/* -------- Load after login/session -------- */
+document.addEventListener("DOMContentLoaded", () => {
+  // load data if already logged in
+  loadFromSupabase();
+});
+
+if(window.supabaseClient){
+  window.supabaseClient.auth.onAuthStateChange((_event, session) => {
+    if(session?.user){
+      loadFromSupabase();
+    }else{
+      // clear local data on logout
+      trucks = [];
+      routes = [];
+      selectedTruck = null;
+      selectedCompany = "ALL";
+      renderAll();
+    }
+  });
+}
+
+
+
+/* ===== User badge + logout (first name) ===== */
+function _firstNameFromUser(user){
+  if(!user) return null;
+  const meta = user.user_metadata || {};
+  const full = (meta.full_name || meta.name || user.email || "").trim();
+  if(!full) return null;
+  // If it's an email, take before @ then capitalize first part
+  if(full.includes("@")){
+    const left = full.split("@")[0];
+    const token = left.split(/[._-]/)[0] || left;
+    return token.charAt(0).toUpperCase() + token.slice(1);
+  }
+  return full.split(" ")[0];
+}
+
+async function updateUserBadge(){
+  const badge = document.getElementById("user-badge");
+  const btn = document.getElementById("btn-logout");
+  if(!badge && !btn) return;
+
+  const supa = window.supabaseClient;
+  if(!supa){
+    if(badge) badge.textContent = "Deslogado";
+    if(btn) btn.style.display = "none";
+    return;
+  }
+
+  const { data } = await supa.auth.getSession();
+  const user = data?.session?.user || null;
+
+  if(user){
+    const first = _firstNameFromUser(user) || "Logado";
+    if(badge) badge.textContent = first;
+    if(btn) btn.style.display = "inline-flex";
+  }else{
+    if(badge) badge.textContent = "Deslogado";
+    if(btn) btn.style.display = "none";
+  }
+}
+
+async function doLogout(){
+  try{
+    const supa = window.supabaseClient;
+    if(supa) await supa.auth.signOut();
+  }finally{
+    await updateUserBadge();
+    // if your app gates content behind auth modal:
+    if(typeof showAuthModal === "function") showAuthModal(true);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const btn = document.getElementById("btn-logout");
+  if(btn && !btn.__wired){
+    btn.__wired = true;
+    btn.addEventListener("click", (e)=>{ e.preventDefault(); doLogout(); });
+  }
+  updateUserBadge();
+});
+
+if(window.supabaseClient){
+  window.supabaseClient.auth.onAuthStateChange(() => {
+    updateUserBadge();
+  });
+}
+
+
+
+// === Logout (force return to login) ===
+async function doLogout(){
+  try{
+    if(window.supabaseClient){
+      await window.supabaseClient.auth.signOut();
+    }
+  }catch(e){
+    console.warn("logout error", e);
+  }finally{
+    // Clear UI and force modal
+    try{ if(typeof setUserBadge === "function") setUserBadge(null); }catch(_){}
+    try{ if(typeof setAppEnabled === "function") setAppEnabled(false); }catch(_){}
+    try{
+      if(typeof showAuthModal === "function") showAuthModal(true);
+      else {
+        const m = document.getElementById("auth-modal");
+        if(m) m.classList.add("active");
+      }
+    }catch(_){}
+  }
+}
+
+document.addEventListener("DOMContentLoaded", ()=>{
+  const btn = document.getElementById("btn-logout");
+  if(btn && !btn.__wired){
+    btn.__wired = true;
+    btn.addEventListener("click", (e)=>{ e.preventDefault(); doLogout(); });
+  }
+});
+
+
+
+/* =======================
+   ROTEIRIZAÇÃO (OSM Nominatim + OSRM) + cruzamento com trechos cadastrados
+   ======================= */
+let rtzMap = null;
+let rtzMainLayer = null;
+let rtzAltLayers = [];
+let rtzSegLayers = new Map();
+
+function _rtzStatus(msg, isError=false){
+  const el = document.getElementById("rtz-status");
+  if(!el) return;
+  if(!msg){ el.style.display="none"; el.textContent=""; return; }
+  el.style.display="block";
+  el.textContent = msg;
+  el.style.borderColor = isError ? "#FCA5A5" : "#93C5FD";
+}
+function _rtzSetSummary(txt){
+  const el = document.getElementById("rtz-summary");
+  if(el) el.innerHTML = txt;
+}
+function _rtzSetList(items){
+  const ul = document.getElementById("rtz-list");
+  if(!ul) return;
+  ul.innerHTML = "";
+  (items||[]).forEach(it=>{
+    const li = document.createElement("li");
+    li.innerHTML = it;
+    ul.appendChild(li);
+  });
+}
+
+function _rtzEnsureMap(){
+  const el = document.getElementById("rtz-map");
+  if(!el || rtzMap) return;
+  rtzMap = L.map("rtz-map", { zoomControl:true }).setView([-15.78,-47.93], 4);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution:"&copy; OpenStreetMap" }).addTo(rtzMap);
+  _rtzDrawSegments();
+}
+
+function _rtzDrawSegments(){
+  if(!rtzMap) return;
+  for(const [,layer] of rtzSegLayers){
+    try{ rtzMap.removeLayer(layer); }catch(_){}
+  }
+  rtzSegLayers.clear();
+
+  (routes||[]).forEach(r=>{
+    if(!r.geometry || !Array.isArray(r.geometry) || r.geometry.length < 2) return;
+    const latlngs = r.geometry.map(p => [p.lat ?? p[0], p.lon ?? p[1]]);
+    const layer = L.polyline(latlngs, { weight: 6, opacity: 0.55, color: r.color || "#1E4F9E" }).addTo(rtzMap);
+    layer.bindTooltip(`${r.name} • ${r.state} • ${r.highway}`, { sticky:true });
+    rtzSegLayers.set(r.id, layer);
+  });
+}
+
+function _rtzHighlightSegment(routeId, mode){
+  const layer = rtzSegLayers.get(routeId);
+  if(!layer) return;
+  if(mode === "need"){
+    layer.setStyle({ weight: 9, opacity: 0.95, color: "#DC2626" });
+  }else if(mode === "hit"){
+    layer.setStyle({ weight: 9, opacity: 0.9, color: "#16A34A" });
+  }else{
+    const r = (routes||[]).find(x=>x.id===routeId);
+    layer.setStyle({ weight: 6, opacity: 0.55, color: (r?.color || "#1E4F9E") });
+  }
+}
+
+function _rtzPopulatePlates(){
+  const sel = document.getElementById("rtz-plate");
+  if(!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = "";
+  const opt0 = document.createElement("option");
+  opt0.value = "";
+  opt0.textContent = "Selecione...";
+  sel.appendChild(opt0);
+
+  (trucks||[]).forEach(t=>{
+    const opt = document.createElement("option");
+    opt.value = t.id;
+    opt.textContent = `${t.plate} (${t.company || "POTENCIAL"})`;
+    sel.appendChild(opt);
+  });
+
+  if(prev) sel.value = prev;
+}
+
+function _rtzHaversine(a, b){
+  const R = 6371000;
+  const toRad = x => x*Math.PI/180;
+  const dLat = toRad(b[0]-a[0]);
+  const dLon = toRad(b[1]-a[1]);
+  const lat1 = toRad(a[0]), lat2 = toRad(b[0]);
+  const s = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.min(1, Math.sqrt(s)));
+}
+function _rtzMinDist(routePts, segPts){
+  let best = Infinity;
+  for(let i=0;i<segPts.length;i++){
+    for(let j=0;j<routePts.length;j++){
+      const d = _rtzHaversine(routePts[j], segPts[i]);
+      if(d < best) best = d;
+      if(best < 80) return best;
+    }
+  }
+  return best;
+}
+
+async function _rtzGeocode(q){
+  const url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + encodeURIComponent(q);
+  const res = await fetch(url, { headers: { "Accept":"application/json" }});
+  const js = await res.json();
+  if(!js || !js.length) return null;
+  return { lat: parseFloat(js[0].lat), lon: parseFloat(js[0].lon), display: js[0].display_name };
+}
+
+async function _rtzRoute(a,b){
+  const coords = `${a.lon},${a.lat};${b.lon},${b.lat}`;
+  const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson&alternatives=true&steps=false`;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error("Falha ao buscar rotas no OSRM.");
+  return await res.json();
+}
+
+async function rtzSearch(){
+  try{
+    _rtzEnsureMap();
+    _rtzPopulatePlates();
+
+    const plateId = document.getElementById("rtz-plate")?.value || "";
+    const origin = (document.getElementById("rtz-origin")?.value || "").trim();
+    const dest = (document.getElementById("rtz-dest")?.value || "").trim();
+
+    if(!plateId){ _rtzStatus("Selecione uma placa.", true); return; }
+    if(!origin || !dest){ _rtzStatus("Informe origem e destino.", true); return; }
+
+    _rtzStatus("Localizando origem/destino...", false);
+    const a = await _rtzGeocode(origin);
+    const b = await _rtzGeocode(dest);
+    if(!a || !b){ _rtzStatus("Não foi possível localizar origem ou destino. Tente incluir UF (ex.: Uberlândia/MG).", true); return; }
+
+    _rtzStatus("Buscando rotas...", false);
+    const data = await _rtzRoute(a,b);
+    if(!data?.routes?.length){ _rtzStatus("Nenhuma rota encontrada.", true); return; }
+
+    // reset layers
+    if(rtzMainLayer){ try{ rtzMap.removeLayer(rtzMainLayer);}catch(_){ } rtzMainLayer=null; }
+    rtzAltLayers.forEach(l=>{ try{ rtzMap.removeLayer(l);}catch(_){ } });
+    rtzAltLayers = [];
+
+    // reset segment styles
+    for(const rid of rtzSegLayers.keys()) _rtzHighlightSegment(rid, "none");
+
+    // draw alts
+    const main = data.routes[0];
+    const alts = data.routes.slice(1, Math.min(3, data.routes.length));
+    alts.forEach(r=>{
+      const ll = r.geometry.coordinates.map(c=>[c[1], c[0]]);
+      const layer = L.polyline(ll, { weight: 4, opacity: 0.35, color: "#111827" }).addTo(rtzMap);
+      rtzAltLayers.push(layer);
+    });
+
+    const routePts = main.geometry.coordinates.map(c=>[c[1], c[0]]);
+    rtzMainLayer = L.polyline(routePts, { weight: 7, opacity: 0.9, color: "#0EA5E9" }).addTo(rtzMap);
+    rtzMap.fitBounds(rtzMainLayer.getBounds().pad(0.15));
+
+    const thresholdM = 250;
+    const hits = [];
+    const needs = [];
+
+    (routes||[]).forEach(seg=>{
+      if(!seg.geometry || !Array.isArray(seg.geometry) || seg.geometry.length < 2) return;
+      const segPts = seg.geometry.map(p=>[p.lat ?? p[0], p.lon ?? p[1]]);
+      const d = _rtzMinDist(routePts, segPts);
+      if(d <= thresholdM){
+        hits.push({ seg, d });
+        const authorized = (seg.allowedTrucks || []).includes(plateId);
+        if(authorized){
+          _rtzHighlightSegment(seg.id, "hit");
+        }else{
+          _rtzHighlightSegment(seg.id, "need");
+          needs.push({ seg, d });
+        }
+      }
+    });
+
+    const km = (main.distance/1000).toFixed(1);
+    const min = Math.round(main.duration/60);
+    const plate = (trucks||[]).find(t=>t.id===plateId);
+
+    _rtzSetSummary(`<strong>${plate?.plate || "Placa"}</strong> • ${km} km • ~${min} min<br><span class="muted">Origem: ${a.display}<br>Destino: ${b.display}</span>`);
+
+    const list = [];
+    if(!hits.length){
+      list.push("✅ Nenhum trecho cadastrado cruza a rota (sem indicação de autorização pelos trechos cadastrados).");
+    }else{
+      list.push(`Encontrados <strong>${hits.length}</strong> trechos cadastrados próximos/na rota (≤ ${thresholdM} m).`);
+      if(needs.length){
+        list.push(`⚠️ <strong>${needs.length}</strong> trecho(s) exigem autorização para esta placa (não autorizados).`);
+      }else{
+        list.push("✅ Todos os trechos encontrados já estão autorizados para esta placa.");
+      }
+      needs.forEach(x=>{
+        const s = x.seg;
+        list.push(`🚫 <strong>${s.name}</strong> • ${s.state} • ${s.highway} — <span class="muted">não autorizado</span>`);
+      });
+      hits.filter(x=> (x.seg.allowedTrucks||[]).includes(plateId)).forEach(x=>{
+        const s = x.seg;
+        list.push(`✅ <strong>${s.name}</strong> • ${s.state} • ${s.highway} — <span class="muted">autorizado</span>`);
+      });
+    }
+    _rtzSetList(list);
+
+    _rtzStatus("", false);
+  }catch(e){
+    console.error(e);
+    _rtzStatus(e?.message || String(e), true);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", ()=>{
+  const btn = document.getElementById("rtz-search");
+  if(btn && !btn.__wired){
+    btn.__wired = true;
+    btn.addEventListener("click", (e)=>{ e.preventDefault(); rtzSearch(); });
+  }
+  _rtzPopulatePlates();
+});
+
+// sync after supabase reloads
+if(window.supabaseClient){
+  window.supabaseClient.auth.onAuthStateChange((_event, _session)=>{
+    setTimeout(()=>{
+      try{
+        _rtzPopulatePlates();
+        if(rtzMap) _rtzDrawSegments();
+      }catch(_){}
+    }, 350);
+  });
+}
+
+</script>
+
+<!-- AUTH MODAL -->
+<div id="auth-modal" class="modal-backdrop active" onclick="/* bloquear clique fora */">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:540px;">
+        <div class="modal-header auth-header">
+      <img class="auth-logo" src="https://vivaintra-s3-potencial.s3.amazonaws.com/temp/d39ad6a1bff5ed678d5ae138c597b8d5c3df5993.png" alt="Grupo Potencial">
+      <div class="auth-title">Acesso ao Sistema</div>
+      <div class="auth-subtitle">Gerenciamento de Autorização Especial de Trânsito</div>
+    </div>
+    <div class="modal-body">
+      <div class="mini-status" style="margin-top:0;">
+        Acesso restrito. Entre com seu e-mail e senha cadastrados no Supabase.
+      </div>
+
+      <div style="display:grid; gap:10px; margin-top:14px;">
+        <input id="auth-email" type="email" placeholder="E-mail" autocomplete="email" />
+        <input id="auth-password" type="password" placeholder="Senha" autocomplete="current-password" />
+      </div>
+
+      <div class="modal-actions" style="margin-top:14px;">
+        <button id="auth-login-btn" class="btn btn-primary" style="width:100%;" onclick="doLogin()">>Entrar</button>
+      </div>
+
+      <div id="auth-status" class="mini-status" style="margin-top:14px; display:none;"></div>
+
+      <div class="mini-status" style="margin-top:14px;">
+        <strong>Dica:</strong> caso não tenha acesso, solicite suas credenciais ao administrador.
+      </div>
+    </div>
+  </div>
+</div>
+<!-- /AUTH MODAL -->
+
+</body>
+</html>
